@@ -16,11 +16,7 @@ export default function Index() {
   const [showAuth, setShowAuth] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
 
-  const adImages: Record<number, string> = {
-    1: "https://cdn.poehali.dev/projects/c5b32207-6753-4064-911c-737bcd163c5b/files/50cd05da-fd53-4214-a3f1-3ab582f7a5ff.jpg",
-    2: "https://cdn.poehali.dev/projects/c5b32207-6753-4064-911c-737bcd163c5b/files/ff215b10-9cd0-4c03-b8ca-9a690beffcef.jpg",
-    3: "https://cdn.poehali.dev/projects/c5b32207-6753-4064-911c-737bcd163c5b/files/3ecfc90b-a24f-45bc-afa3-80611bd63a4e.jpg",
-  };
+
 
   // Восстанавливаем сессию при загрузке
   useEffect(() => {
@@ -68,14 +64,14 @@ export default function Index() {
       );
     }
     switch (activePage) {
-      case "home": return <HomePage onNavigate={handleNavigate} adImages={adImages} onAuthClick={() => setShowAuth(true)} />;
-      case "categories": return <CategoriesPage adImages={adImages} />;
-      case "my-ads": return <MyAdsPage adImages={adImages} />;
-      case "favorites": return <FavoritesPage adImages={adImages} onNavigate={handleNavigate} />;
+      case "home": return <HomePage onNavigate={handleNavigate} adImages={{}} onAuthClick={() => setShowAuth(true)} />;
+      case "categories": return <CategoriesPage />;
+      case "my-ads": return <MyAdsPage />;
+      case "favorites": return <FavoritesPage adImages={{}} onNavigate={handleNavigate} />;
       case "messages": return <MessagesPage />;
       case "profile": return <ProfilePage user={user} onLogout={handleLogout} />;
       case "about": return <AboutPage />;
-      default: return <HomePage onNavigate={handleNavigate} adImages={adImages} onAuthClick={() => setShowAuth(true)} />;
+      default: return <HomePage onNavigate={handleNavigate} adImages={{}} onAuthClick={() => setShowAuth(true)} />;
     }
   };
 

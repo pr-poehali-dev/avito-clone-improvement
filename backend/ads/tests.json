@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "List ads (public)",
+      "method": "GET",
+      "path": "/?action=list",
+      "expectedStatus": 200,
+      "expectedBody": {"ads": [], "total": 0},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create ad without auth",
+      "method": "POST",
+      "path": "/?action=create",
+      "body": {"title": "Test", "category": "electronics", "price": 1000},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "My ads without auth",
+      "method": "GET",
+      "path": "/?action=my",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Delete without auth",
+      "method": "POST",
+      "path": "/?action=delete",
+      "body": {"id": 1},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
