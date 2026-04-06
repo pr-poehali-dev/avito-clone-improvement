@@ -1,14 +1,20 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
+import { User } from "@/lib/auth";
 
-export default function ProfilePage() {
+interface ProfilePageProps {
+  user: User | null;
+  onLogout: () => void;
+}
+
+export default function ProfilePage({ user, onLogout }: ProfilePageProps) {
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState({
-    name: "Александр Иванов",
-    email: "a.ivanov@mail.ru",
-    phone: "+7 (999) 123-45-67",
-    city: "Москва",
-    about: "Продаю качественные товары. Реальным покупателям скидки!",
+    name: user?.name || "Пользователь",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    city: user?.city || "",
+    about: user?.about || "",
   });
 
   const stats = [
@@ -31,7 +37,9 @@ export default function ProfilePage() {
           {/* Avatar */}
           <div className="relative shrink-0">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shadow-lg">
-              <span className="text-white font-display font-bold text-2xl">АИ</span>
+              <span className="text-white font-display font-bold text-2xl">
+                {profile.name.charAt(0).toUpperCase()}
+              </span>
             </div>
             <button className="absolute -bottom-1 -right-1 w-7 h-7 bg-white border-2 border-violet-200 rounded-full flex items-center justify-center hover:bg-violet-50 transition-colors">
               <Icon name="Camera" size={12} className="text-violet-600" />
@@ -141,7 +149,10 @@ export default function ProfilePage() {
       </div>
 
       {/* Logout */}
-      <button className="flex items-center gap-2 w-full px-5 py-3 border border-rose-200 text-rose-600 rounded-xl hover:bg-rose-50 transition-colors font-semibold">
+      <button
+        onClick={onLogout}
+        className="flex items-center gap-2 w-full px-5 py-3 border border-rose-200 text-rose-600 rounded-xl hover:bg-rose-50 transition-colors font-semibold"
+      >
         <Icon name="LogOut" size={16} />
         Выйти из аккаунта
       </button>

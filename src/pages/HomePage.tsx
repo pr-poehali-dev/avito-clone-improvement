@@ -6,6 +6,7 @@ import { ads, categories } from "@/data/mockData";
 interface HomePageProps {
   onNavigate: (page: string) => void;
   adImages: Record<number, string>;
+  onAuthClick: () => void;
 }
 
 const stats = [
@@ -15,7 +16,7 @@ const stats = [
   { label: "Сделок в день", value: "48K", icon: "TrendingUp", color: "text-emerald-600" },
 ];
 
-export default function HomePage({ onNavigate, adImages }: HomePageProps) {
+export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePageProps) {
   return (
     <div className="space-y-12">
       {/* Hero */}
@@ -137,10 +138,10 @@ export default function HomePage({ onNavigate, adImages }: HomePageProps) {
             Продайте то, что не нужно
           </h2>
           <p className="text-white/80 mb-6 relative">
-            Разместите объявление за 2 минуты — бесплатно и без регистрации
+            Разместите объявление за 2 минуты — быстро и удобно
           </p>
           <button
-            onClick={() => onNavigate("my-ads")}
+            onClick={() => { onNavigate("my-ads"); }}
             className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-violet-700 rounded-2xl font-bold text-lg hover:bg-white/90 transition-colors shadow-xl"
           >
             <Icon name="Plus" size={20} />
