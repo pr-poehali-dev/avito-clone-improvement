@@ -142,7 +142,7 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {demoAds.map((ad, i) => (
               <div key={ad.id} className={`animate-fade-in delay-${(i % 4 + 1) * 100}`}>
-                <AdCard ad={ad} />
+                <AdCard ad={ad} onNavigate={onNavigate} />
               </div>
             ))}
           </div>

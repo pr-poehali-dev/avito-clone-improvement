@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import AdCard from "@/components/AdCard";
-import PhotoUploader from "@/components/PhotoUploader";
+import MediaUploader, { MediaItem } from "@/components/MediaUploader";
 import { categories } from "@/data/mockData";
 import { myAds, createAd, deleteAd, Ad, formatTimeAgo } from "@/lib/adsApi";
 
@@ -9,7 +9,7 @@ interface MyAdsPageProps {
   adImages?: Record<number, string>;
 }
 
-const emptyForm = { title: "", price: "", description: "", category: "", city: "", image_url: "" };
+const emptyForm = { title: "", price: "", description: "", category: "", city: "" };
 
 export default function MyAdsPage({ adImages }: MyAdsPageProps) {
   const [showForm, setShowForm] = useState(false);
@@ -18,6 +18,7 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [activeCount, setActiveCount] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
+  const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -50,16 +51,19 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
     setSaving(true);
     setError("");
     try {
+      const readyMedia = media.filter(m => m.url && !m.uploading);
       await createAd({
         title: formData.title,
         description: formData.description,
         price: parseInt(formData.price) || 0,
         category: formData.category,
         city: formData.city,
-        image_url: formData.image_url || undefined,
+        image_url: readyMedia[0]?.url || undefined,
+        media_urls: readyMedia.map(m => ({ url: m.url, type: m.type })),
       });
       setSuccess(true);
       setFormData(emptyForm);
+      setMedia([]);
       setShowForm(false);
       setTab("active");
       await loadAds("active");
@@ -113,15 +117,12 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
           <h2 className="font-display text-xl font-bold mb-5 gradient-text">Создать объявление</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {/* Photo — занимает всю ширину */}
+            {/* Media — занимает всю ширину */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
-                Фотография
+                Фото и видео
               </label>
-              <PhotoUploader
-                value={formData.image_url}
-                onChange={url => set("image_url", url)}
-              />
+              <MediaUploader value={media} onChange={setMedia} />
             </div>
 
             <div className="sm:col-span-2">
@@ -203,7 +204,7 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
             </button>
             <button
               type="button"
-              onClick={() => { setShowForm(false); setFormData(emptyForm); }}
+              onClick={() => { setShowForm(false); setFormData(emptyForm); setMedia([]); }}
               className="px-5 py-3 border border-border rounded-xl text-muted-foreground hover:bg-muted/60 transition-colors"
             >
               Отмена

@@ -5,9 +5,10 @@ import { User } from "@/lib/auth";
 interface ProfilePageProps {
   user: User | null;
   onLogout: () => void;
+  onNavigate?: (page: string) => void;
 }
 
-export default function ProfilePage({ user, onLogout }: ProfilePageProps) {
+export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageProps) {
   const [editing, setEditing] = useState(false);
   const [profile, setProfile] = useState({
     name: user?.name || "Пользователь",
@@ -125,13 +126,15 @@ export default function ProfilePage({ user, onLogout }: ProfilePageProps) {
       {/* Settings */}
       <div className="glass-card rounded-2xl overflow-hidden">
         {[
-          { icon: "Bell", label: "Уведомления", desc: "Настройки push-уведомлений" },
-          { icon: "Shield", label: "Безопасность", desc: "Пароль и двухфакторная аутентификация" },
-          { icon: "CreditCard", label: "Способы оплаты", desc: "Карты и счета" },
-          { icon: "HelpCircle", label: "Помощь и поддержка", desc: "Ответы на частые вопросы" },
+          { icon: "Star", label: "Мои отзывы", desc: "Отзывы о вас от покупателей", action: () => user && onNavigate?.(`reviews:${user.id}`) },
+          { icon: "Bell", label: "Уведомления", desc: "Настройки push-уведомлений", action: undefined },
+          { icon: "Shield", label: "Безопасность", desc: "Пароль и двухфакторная аутентификация", action: undefined },
+          { icon: "HelpCircle", label: "Помощь и поддержка", desc: "Ответы на частые вопросы", action: undefined },
+          { icon: "LayoutDashboard", label: "Панель администратора", desc: "Только для администраторов", action: () => onNavigate?.("admin") },
         ].map((item, i) => (
           <button
             key={item.label}
+            onClick={item.action}
             className={`flex items-center gap-4 w-full px-5 py-4 text-left hover:bg-muted/40 transition-colors ${
               i > 0 ? "border-t border-border/50" : ""
             }`}

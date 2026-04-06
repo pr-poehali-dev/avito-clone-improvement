@@ -7,9 +7,10 @@ import { listAds, Ad, formatTimeAgo, ListFilters } from "@/lib/adsApi";
 
 interface CategoriesPageProps {
   adImages?: Record<number, string>;
+  onNavigate?: (page: string) => void;
 }
 
-export default function CategoriesPage({ adImages }: CategoriesPageProps) {
+export default function CategoriesPage({ adImages, onNavigate }: CategoriesPageProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [ads, setAds] = useState<Ad[]>([]);
   const [total, setTotal] = useState(0);
@@ -112,7 +113,7 @@ export default function CategoriesPage({ adImages }: CategoriesPageProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {ads.map((ad, i) => (
               <div key={ad.id} className={`animate-fade-in delay-${(i % 4 + 1) * 100}`}>
-                <AdCard ad={{ ...ad, date: formatTimeAgo(ad.created_at) }} />
+                <AdCard ad={{ ...ad, date: formatTimeAgo(ad.created_at) }} onNavigate={onNavigate} />
               </div>
             ))}
           </div>

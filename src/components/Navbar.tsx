@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
+import Logo from "@/components/Logo";
 import { User } from "@/lib/auth";
 
 interface NavbarProps {
@@ -17,7 +18,6 @@ const navItems = [
   { id: "favorites", label: "Избранное", icon: "Heart", authRequired: true },
   { id: "messages", label: "Сообщения", icon: "MessageCircle", badge: 3, authRequired: true },
   { id: "profile", label: "Профиль", icon: "User", authRequired: true },
-  { id: "about", label: "О платформе", icon: "Info" },
 ];
 
 export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPostAd }: NavbarProps) {
@@ -38,14 +38,8 @@ export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPo
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <button onClick={() => onNavigate("home")} className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shadow-lg pulse-glow">
-              <span className="text-white font-display font-bold text-sm">ОМ</span>
-            </div>
-            <span className="font-display font-bold text-xl tracking-wide hidden sm:block">
-              <span className="gradient-text">Объяво</span>
-              <span className="text-foreground">Маркет</span>
-            </span>
+          <button onClick={() => onNavigate("home")} className="flex items-center">
+            <Logo size={36} showText />
           </button>
 
           {/* Desktop nav */}

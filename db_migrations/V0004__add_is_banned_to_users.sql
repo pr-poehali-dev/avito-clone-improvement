@@ -1,0 +1,2 @@
+ALTER TABLE t_p16851207_avito_clone_improvem.users
+    ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;

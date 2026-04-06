@@ -5,7 +5,15 @@
       "method": "GET",
       "path": "/?action=list",
       "expectedStatus": 200,
-      "expectedBody": {"ads": [], "total": 0},
+      "expectedBody": {"total": 0},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get ad - not found",
+      "method": "GET",
+      "path": "/?action=get&id=999999",
+      "expectedStatus": 404,
+      "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
     },
     {

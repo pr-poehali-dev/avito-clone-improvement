@@ -23,6 +23,7 @@ interface AdCardProps {
   ad: AdCardData;
   onDelete?: (id: number) => void;
   showDeleteBtn?: boolean;
+  onNavigate?: (page: string) => void;
 }
 
 export const formatPrice = (price: number): string =>
@@ -34,7 +35,7 @@ const categoryEmojis: Record<string, string> = {
   animals: "🐾", services: "🔧", hobby: "🎨", food: "🛒",
 };
 
-export default function AdCard({ ad, onDelete, showDeleteBtn }: AdCardProps) {
+export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate }: AdCardProps) {
   const [isFavorite, setIsFavorite] = useState(ad.favorite ?? false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -43,7 +44,10 @@ export default function AdCard({ ad, onDelete, showDeleteBtn }: AdCardProps) {
   const dateLabel = ad.date || "";
 
   return (
-    <div className="glass-card hover-scale rounded-2xl overflow-hidden group cursor-pointer">
+    <div
+      className="glass-card hover-scale rounded-2xl overflow-hidden group cursor-pointer"
+      onClick={() => onNavigate && onNavigate(`ad:${ad.id}`)}
+    >
       {/* Image */}
       <div className="relative h-48 overflow-hidden bg-gradient-to-br from-muted to-muted/50">
         {imageUrl ? (
@@ -104,7 +108,7 @@ export default function AdCard({ ad, onDelete, showDeleteBtn }: AdCardProps) {
 
         {/* Delete controls */}
         {showDeleteBtn && onDelete && (
-          <div className="mt-3 pt-3 border-t border-border/50">
+          <div className="mt-3 pt-3 border-t border-border/50" onClick={e => e.stopPropagation()}>
             {confirmDelete ? (
               <div className="flex gap-2">
                 <button

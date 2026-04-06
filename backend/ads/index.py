@@ -1,12 +1,11 @@
 """
 CRUD объявлений ОбъявоМаркет.
-action: list | my | create | delete — query-параметр или в body.
+action: list | my | create | delete | get — query-параметр или в body.
 """
 
 import json
 import os
 import psycopg2
-from datetime import datetime
 
 SCHEMA = os.environ.get("MAIN_DB_SCHEMA", "t_p16851207_avito_clone_improvem")
 
@@ -165,13 +164,29 @@ def handler(event: dict, context) -> dict:
         except Exception:
             price = 0
 
+        media_urls = body.get("media_urls") or []  # [{url, type}]
+        # если media_urls не передан но есть image_url — используем его
+        if not media_urls and image_url:
+            media_urls = [{"url": image_url, "type": "photo"}]
+
         cur = conn.cursor()
         cur.execute(f"""
             INSERT INTO {SCHEMA}.ads (user_id, title, description, price, category, city, image_url)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING id, title, price, city, category, views, image_url, created_at
-        """, (user_id, title, description, price, category, city, image_url))
+        """, (user_id, title, description, price, category, city,
+              media_urls[0]["url"] if media_urls else image_url))
         row = cur.fetchone()
+        ad_id = row[0]
+
+        # Сохраняем все медиафайлы
+        for i, m in enumerate(media_urls[:11]):  # max 10 фото + 1 видео
+            mtype = m.get("type", "photo")
+            cur.execute(f"""
+                INSERT INTO {SCHEMA}.ad_media (ad_id, url, media_type, sort_order)
+                VALUES (%s, %s, %s, %s)
+            """, (ad_id, m["url"], mtype, i))
+
         conn.commit()
         conn.close()
 
@@ -205,5 +220,46 @@ def handler(event: dict, context) -> dict:
         if affected == 0:
             return err(404, "Объявление не найдено")
         return ok({"ok": True})
+
+    # --- get: детальная страница объявления ---
+    if action == "get":
+        ad_id = qs.get("id") or body.get("id")
+        if not ad_id:
+            return err(400, "Укажите id")
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT a.id, a.title, a.description, a.price, a.city, a.category,
+                   a.views, a.image_url, a.created_at, a.status,
+                   u.id as user_id, u.name as seller_name
+            FROM {SCHEMA}.ads a
+            JOIN {SCHEMA}.users u ON u.id = a.user_id
+            WHERE a.id = %s
+        """, (int(ad_id),))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return err(404, "Объявление не найдено")
+
+        # Медиафайлы
+        cur.execute(f"""
+            SELECT url, media_type, sort_order
+            FROM {SCHEMA}.ad_media WHERE ad_id = %s ORDER BY sort_order
+        """, (int(ad_id),))
+        media = [{"url": m[0], "type": m[1]} for m in cur.fetchall()]
+
+        # Инкрементируем просмотры
+        cur.execute(f"UPDATE {SCHEMA}.ads SET views = views + 1 WHERE id = %s", (int(ad_id),))
+        conn.commit()
+        conn.close()
+
+        ad = {
+            "id": row[0], "title": row[1], "description": row[2],
+            "price": row[3], "city": row[4], "category": row[5],
+            "views": row[6] + 1, "image_url": row[7], "created_at": str(row[8]),
+            "status": row[9], "user_id": row[10], "seller_name": row[11],
+            "media": media if media else ([{"url": row[7], "type": "photo"}] if row[7] else []),
+        }
+        return ok({"ad": ad})
 
     return err(400, "Неизвестное действие")

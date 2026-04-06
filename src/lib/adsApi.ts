@@ -63,6 +63,7 @@ export async function createAd(data: {
   category: string;
   city: string;
   image_url?: string;
+  media_urls?: Array<{ url: string; type: string }>;
 }): Promise<{ ad: Ad }> {
   return call("create", {}, data);
 }
