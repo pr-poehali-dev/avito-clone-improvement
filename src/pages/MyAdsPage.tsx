@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import AdCard from "@/components/AdCard";
+import PhotoUploader from "@/components/PhotoUploader";
 import { categories } from "@/data/mockData";
 import { myAds, createAd, deleteAd, Ad, formatTimeAgo } from "@/lib/adsApi";
 
@@ -8,7 +9,7 @@ interface MyAdsPageProps {
   adImages?: Record<number, string>;
 }
 
-const emptyForm = { title: "", price: "", description: "", category: "", city: "" };
+const emptyForm = { title: "", price: "", description: "", category: "", city: "", image_url: "" };
 
 export default function MyAdsPage({ adImages }: MyAdsPageProps) {
   const [showForm, setShowForm] = useState(false);
@@ -55,13 +56,14 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
         price: parseInt(formData.price) || 0,
         category: formData.category,
         city: formData.city,
+        image_url: formData.image_url || undefined,
       });
       setSuccess(true);
       setFormData(emptyForm);
       setShowForm(false);
       setTab("active");
       await loadAds("active");
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => setSuccess(false), 4000);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Ошибка при публикации");
     } finally {
@@ -109,7 +111,19 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
       {showForm && (
         <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-6 animate-fade-in border-2 border-violet-200">
           <h2 className="font-display text-xl font-bold mb-5 gradient-text">Создать объявление</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Photo — занимает всю ширину */}
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                Фотография
+              </label>
+              <PhotoUploader
+                value={formData.image_url}
+                onChange={url => set("image_url", url)}
+              />
+            </div>
+
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Заголовок *</label>
               <input
@@ -189,7 +203,7 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
             </button>
             <button
               type="button"
-              onClick={() => setShowForm(false)}
+              onClick={() => { setShowForm(false); setFormData(emptyForm); }}
               className="px-5 py-3 border border-border rounded-xl text-muted-foreground hover:bg-muted/60 transition-colors"
             >
               Отмена
