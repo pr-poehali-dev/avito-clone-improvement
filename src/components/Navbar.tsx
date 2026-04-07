@@ -5,7 +5,8 @@ import { User } from "@/lib/auth";
 import { getFavoriteIds, subscribeFavorites } from "@/lib/favorites";
 import { getToken } from "@/lib/auth";
 
-const ADS_URL = "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
+const ADS_URL =
+  "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
 
 interface NavbarProps {
   activePage: string;
@@ -18,20 +19,45 @@ interface NavbarProps {
 const navItems = [
   { id: "home", label: "Главная", icon: "Home" },
   { id: "categories", label: "Категории", icon: "LayoutGrid" },
-  { id: "my-ads", label: "Мои объявления", icon: "FileText", authRequired: true },
-  { id: "favorites", label: "Избранное", icon: "Heart", authRequired: false, favBadge: true },
-  { id: "messages", label: "Сообщения", icon: "MessageCircle", authRequired: true, msgBadge: true },
-  { id: "profile", label: "Профиль", icon: "User", authRequired: true },
+  {
+    id: "my-ads",
+    label: "Мои объявления",
+    icon: "FileText",
+    authRequired: true,
+  },
+  {
+    id: "favorites",
+    label: "Избранное",
+    icon: "Heart",
+    authRequired: false,
+    favBadge: true,
+  },
+  {
+    id: "messages",
+    label: "Сообщения",
+    icon: "MessageCircle",
+    authRequired: true,
+    msgBadge: true,
+  },
 ];
 
-export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPostAd }: NavbarProps) {
+export default function Navbar({
+  activePage,
+  onNavigate,
+  user,
+  onAuthClick,
+  onPostAd,
+}: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [favCount, setFavCount] = useState(() => getFavoriteIds().length);
 
   // Счётчик непрочитанных сообщений
   useEffect(() => {
-    if (!user) { setUnreadMsgs(0); return; }
+    if (!user) {
+      setUnreadMsgs(0);
+      return;
+    }
     const fetchUnread = async () => {
       try {
         const token = getToken();
@@ -52,7 +78,9 @@ export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPo
   // Счётчик избранного
   useEffect(() => {
     setFavCount(getFavoriteIds().length);
-    const unsub = subscribeFavorites(() => setFavCount(getFavoriteIds().length));
+    const unsub = subscribeFavorites(() =>
+      setFavCount(getFavoriteIds().length),
+    );
     return unsub;
   }, []);
 
@@ -68,7 +96,7 @@ export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPo
     setMobileOpen(false);
   };
 
-  const getBadge = (item: typeof navItems[0]) => {
+  const getBadge = (item: (typeof navItems)[0]) => {
     if (item.msgBadge && user && unreadMsgs > 0) return unreadMsgs;
     if (item.favBadge && favCount > 0) return favCount;
     return 0;
@@ -79,7 +107,10 @@ export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPo
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <button onClick={() => onNavigate("home")} className="flex items-center">
+          <button
+            onClick={() => onNavigate("home")}
+            className="flex items-center"
+          >
             <Logo size={36} showText />
           </button>
 
@@ -129,7 +160,9 @@ export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPo
                       {user.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span className="hidden sm:block text-sm font-medium truncate max-w-24">{user.name.split(" ")[0]}</span>
+                  <span className="hidden sm:block text-sm font-medium truncate max-w-24">
+                    {user.name.split(" ")[0]}
+                  </span>
                 </button>
               </>
             ) : (
@@ -170,7 +203,11 @@ export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPo
                 {item.label}
                 {item.authRequired && !user ? (
                   <span className="ml-auto">
-                    <Icon name="Lock" size={12} className="text-muted-foreground opacity-50" />
+                    <Icon
+                      name="Lock"
+                      size={12}
+                      className="text-muted-foreground opacity-50"
+                    />
                   </span>
                 ) : badge > 0 ? (
                   <span className="ml-auto min-w-[20px] h-5 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-bold px-1">
@@ -182,7 +219,10 @@ export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPo
           })}
           {user ? (
             <button
-              onClick={() => { onPostAd(); setMobileOpen(false); }}
+              onClick={() => {
+                onPostAd();
+                setMobileOpen(false);
+              }}
               className="flex items-center justify-center gap-1.5 w-full mt-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl font-semibold text-sm"
             >
               <Icon name="Plus" size={15} />
@@ -190,7 +230,10 @@ export default function Navbar({ activePage, onNavigate, user, onAuthClick, onPo
             </button>
           ) : (
             <button
-              onClick={() => { onAuthClick(); setMobileOpen(false); }}
+              onClick={() => {
+                onAuthClick();
+                setMobileOpen(false);
+              }}
               className="flex items-center justify-center gap-1.5 w-full mt-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl font-semibold text-sm"
             >
               <Icon name="LogIn" size={15} />
