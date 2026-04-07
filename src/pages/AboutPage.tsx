@@ -82,8 +82,7 @@ export default function AboutPage() {
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
           OMO — маркет объявлений нового поколения, где удобство, безопасность и
-          скорость стоят на первом месте. Уже более 890 тысяч пользователей
-          доверяют нам каждый день.
+          скорость стоят на первом месте.
         </p>
       </section>
 
