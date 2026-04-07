@@ -21,6 +21,7 @@ export default function Index() {
   const [authLoading, setAuthLoading] = useState(true);
   // Параметры текущей страницы
   const [pageParam, setPageParam] = useState<number | null>(null);
+  const [openAdForm, setOpenAdForm] = useState(false);
 
   useEffect(() => {
     if (getToken()) {
@@ -40,6 +41,7 @@ export default function Index() {
 
   const handlePostAd = () => {
     if (!user) { setShowAuth(true); return; }
+    setOpenAdForm(true);
     setActivePage("my-ads");
   };
 
@@ -81,7 +83,7 @@ export default function Index() {
     switch (activePage) {
       case "home": return <HomePage onNavigate={handleNavigate} adImages={{}} onAuthClick={() => setShowAuth(true)} />;
       case "categories": return <CategoriesPage onNavigate={handleNavigate} />;
-      case "my-ads": return <MyAdsPage />;
+      case "my-ads": return <MyAdsPage openForm={openAdForm} onFormOpened={() => setOpenAdForm(false)} />;
       case "favorites": return <FavoritesPage adImages={{}} onNavigate={handleNavigate} />;
       case "messages": return <MessagesPage user={user} onAuthClick={() => setShowAuth(true)} />;
       case "profile": return <ProfilePage user={user} onLogout={handleLogout} onNavigate={handleNavigate} />;

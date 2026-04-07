@@ -7,6 +7,8 @@ import { formatPrice } from "@/components/AdCard";
 
 interface MyAdsPageProps {
   adImages?: Record<number, string>;
+  openForm?: boolean;
+  onFormOpened?: () => void;
 }
 
 const emptyForm = { title: "", price: "", description: "", category: "", city: "" };
@@ -114,8 +116,15 @@ function MyAdCard({ ad, onDelete, onPause, className }: {
   );
 }
 
-export default function MyAdsPage({ adImages }: MyAdsPageProps) {
+export default function MyAdsPage({ adImages, openForm, onFormOpened }: MyAdsPageProps) {
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    if (openForm) {
+      setShowForm(true);
+      onFormOpened?.();
+    }
+  }, [openForm]);
   const [tab, setTab] = useState<"active" | "archived" | "paused">("active");
   const [formData, setFormData] = useState(emptyForm);
   const [ads, setAds] = useState<Ad[]>([]);

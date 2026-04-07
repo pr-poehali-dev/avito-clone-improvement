@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
-import { User } from "@/lib/auth";
+import { User, updateProfile } from "@/lib/auth";
 import { getUserStats } from "@/lib/adsApi";
 
 interface ProfilePageProps {
@@ -11,6 +11,9 @@ interface ProfilePageProps {
 
 export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageProps) {
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saveOk, setSaveOk] = useState(false);
   const [profile, setProfile] = useState({
     name: user?.name || "Пользователь",
     email: user?.email || "",
@@ -20,6 +23,7 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
   });
   const [stats, setStats] = useState({
     active_ads: 0, sold_ads: 0, reviews_count: 0, avg_rating: 0, joined_at: "",
+    unread_messages: 0,
   });
 
   useEffect(() => {
@@ -57,7 +61,7 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
     {
       icon: "MessageCircle",
       label: "Сообщения",
-      desc: "Переписка с покупателями",
+      desc: stats.unread_messages > 0 ? `${stats.unread_messages} непрочитанных` : "Переписка с покупателями",
       action: () => onNavigate?.("messages"),
       color: "bg-cyan-100 text-cyan-600",
     },
@@ -188,11 +192,35 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
                 className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 transition-colors bg-white resize-none"
               />
             </div>
+            {saveError && (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+                <Icon name="AlertCircle" size={14} className="shrink-0" />
+                {saveError}
+              </div>
+            )}
+            {saveOk && (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
+                <Icon name="CheckCircle" size={14} className="shrink-0" />
+                Профиль обновлён!
+              </div>
+            )}
             <button
-              onClick={() => setEditing(false)}
-              className="w-full py-3 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl font-bold hover:opacity-90 transition-opacity"
+              onClick={async () => {
+                setSaving(true); setSaveError(""); setSaveOk(false);
+                try {
+                  await updateProfile({ name: profile.name, city: profile.city, phone: profile.phone, about: profile.about });
+                  setSaveOk(true);
+                  setTimeout(() => { setEditing(false); setSaveOk(false); }, 1500);
+                } catch (e: unknown) {
+                  setSaveError(e instanceof Error ? e.message : "Ошибка сохранения");
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              disabled={saving}
+              className="w-full py-3 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl font-bold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Сохранить изменения
+              {saving ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />Сохраняю...</> : "Сохранить изменения"}
             </button>
           </div>
         </div>

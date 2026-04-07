@@ -293,6 +293,8 @@ def handler(event: dict, context) -> dict:
 
     # --- user_stats: статистика пользователя для профиля ---
     if action == "user_stats":
+        if not token:
+            return err(401, "Не авторизован")
         conn = get_conn()
         user_id = get_user_id(token, conn)
         if not user_id:
@@ -314,6 +316,14 @@ def handler(event: dict, context) -> dict:
 
         cur.execute(f"SELECT created_at FROM {SCHEMA}.users WHERE id = %s", (user_id,))
         joined = cur.fetchone()
+
+        # Непрочитанные сообщения
+        try:
+            cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.messages WHERE receiver_id = %s AND is_read = FALSE", (user_id,))
+            unread_messages = cur.fetchone()[0]
+        except Exception:
+            unread_messages = 0
+
         conn.close()
 
         return ok({
@@ -322,6 +332,25 @@ def handler(event: dict, context) -> dict:
             "reviews_count": reviews_count,
             "avg_rating": float(avg_rating),
             "joined_at": str(joined[0]) if joined else "",
+            "unread_messages": unread_messages,
         })
+
+    # --- unread: только счётчик непрочитанных для Navbar ---
+    if action == "unread":
+        if not token:
+            return ok({"count": 0})
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return ok({"count": 0})
+        cur = conn.cursor()
+        try:
+            cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.messages WHERE receiver_id = %s AND is_read = FALSE", (user_id,))
+            count = cur.fetchone()[0]
+        except Exception:
+            count = 0
+        conn.close()
+        return ok({"count": count})
 
     return err(400, "Неизвестное действие")

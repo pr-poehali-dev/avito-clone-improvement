@@ -144,6 +144,42 @@ def handler(event: dict, context) -> dict:
 
         return ok({"user": {"id": row[0], "name": row[1], "email": row[2], "city": row[3], "phone": row[4], "about": row[5]}})
 
+    # --- update: обновление профиля ---
+    if action == "update":
+        if not token:
+            return err(401, "Не авторизован")
+
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT user_id FROM {SCHEMA}.sessions WHERE token = %s AND expires_at > NOW()",
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return err(401, "Сессия истекла")
+        user_id = row[0]
+
+        name = (body.get("name") or "").strip()
+        city = (body.get("city") or "").strip()
+        phone = (body.get("phone") or "").strip()
+        about = (body.get("about") or "").strip()
+
+        if not name:
+            conn.close()
+            return err(400, "Имя не может быть пустым")
+
+        cur.execute(
+            f"UPDATE {SCHEMA}.users SET name = %s, city = %s, phone = %s, about = %s WHERE id = %s RETURNING id, name, email, city, phone, about",
+            (name, city or None, phone or None, about or None, user_id)
+        )
+        updated = cur.fetchone()
+        conn.commit()
+        conn.close()
+
+        return ok({"user": {"id": updated[0], "name": updated[1], "email": updated[2], "city": updated[3], "phone": updated[4], "about": updated[5]}})
+
     # --- logout ---
     if action == "logout":
         if token:

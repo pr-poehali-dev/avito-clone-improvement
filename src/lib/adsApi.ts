@@ -78,7 +78,7 @@ export async function pauseAd(id: number): Promise<{ new_status: string }> {
 
 export async function getUserStats(): Promise<{
   active_ads: number; sold_ads: number; reviews_count: number;
-  avg_rating: number; joined_at: string;
+  avg_rating: number; joined_at: string; unread_messages: number;
 }> {
   return call("user_stats");
 }

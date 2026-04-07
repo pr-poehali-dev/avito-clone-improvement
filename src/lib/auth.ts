@@ -55,3 +55,10 @@ export async function logout() {
   if (token) await call("logout", {}, token).catch(() => {});
   clearToken();
 }
+
+export async function updateProfile(data: { name: string; city?: string; phone?: string; about?: string }): Promise<User> {
+  const token = getToken();
+  if (!token) throw new Error("Не авторизован");
+  const res = await call("update", data, token);
+  return res.user;
+}

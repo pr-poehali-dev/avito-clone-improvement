@@ -17,11 +17,10 @@ export default function CategoriesPage({ adImages, onNavigate }: CategoriesPageP
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const loadAds = async (category?: string, sub?: string, extra: ListFilters = {}) => {
+  const loadAds = async (category?: string, _sub?: string, extra: ListFilters = {}) => {
     setLoading(true);
     try {
-      const searchExtra = sub ? { ...extra, search: sub } : extra;
-      const res = await listAds({ category, ...searchExtra });
+      const res = await listAds({ category, ...extra });
       setAds(res.ads);
       setTotal(res.total);
     } catch {
@@ -51,11 +50,17 @@ export default function CategoriesPage({ adImages, onNavigate }: CategoriesPageP
     loadAds(selected || undefined, next || undefined);
   };
 
-  const handleSearch = (_: string, f: { city: string; category: string; minPrice: string; maxPrice: string }) => {
-    loadAds(f.category || selected || undefined, selectedSub || undefined, {
-      city: f.city,
-      min_price: f.minPrice,
-      max_price: f.maxPrice,
+  const handleSearch = (query: string, f: { city: string; category: string; minPrice: string; maxPrice: string }) => {
+    const cat = f.category || selected || undefined;
+    if (f.category && f.category !== selected) {
+      setSelected(f.category);
+      setSelectedSub(null);
+    }
+    loadAds(cat, undefined, {
+      search: query || undefined,
+      city: f.city || undefined,
+      min_price: f.minPrice || undefined,
+      max_price: f.maxPrice || undefined,
     });
   };
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
+import { isFavorite, toggleFavorite, notifyFavorites } from "@/lib/favorites";
 
 export interface AdCardData {
   id: number;
@@ -17,6 +18,7 @@ export interface AdCardData {
   views: number;
   description?: string;
   seller_name?: string;
+  status?: string;
 }
 
 interface AdCardProps {
@@ -24,6 +26,7 @@ interface AdCardProps {
   onDelete?: (id: number) => void;
   showDeleteBtn?: boolean;
   onNavigate?: (page: string) => void;
+  onFavoriteChange?: () => void;
 }
 
 export const formatPrice = (price: number): string =>
@@ -35,13 +38,21 @@ const categoryEmojis: Record<string, string> = {
   animals: "🐾", services: "🔧", hobby: "🎨", food: "🛒",
 };
 
-export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate }: AdCardProps) {
-  const [isFavorite, setIsFavorite] = useState(ad.favorite ?? false);
+export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavoriteChange }: AdCardProps) {
+  const [fav, setFav] = useState(() => isFavorite(ad.id));
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const imageUrl = ad.image_url || ad.image || null;
   const location = ad.city || ad.location || "";
   const dateLabel = ad.date || "";
+
+  const handleFav = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = toggleFavorite(ad.id);
+    setFav(next);
+    notifyFavorites();
+    onFavoriteChange?.();
+  };
 
   return (
     <div
@@ -69,13 +80,14 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate }: AdCa
         )}
 
         <button
-          onClick={(e) => { e.stopPropagation(); setIsFavorite(!isFavorite); }}
+          onClick={handleFav}
           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+          title={fav ? "Убрать из избранного" : "Добавить в избранное"}
         >
           <Icon
             name="Heart"
             size={15}
-            className={isFavorite ? "fill-rose-500 text-rose-500" : "text-muted-foreground"}
+            className={fav ? "fill-rose-500 text-rose-500" : "text-muted-foreground"}
           />
         </button>
       </div>
@@ -88,7 +100,7 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate }: AdCa
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Icon name="MapPin" size={11} />
-            {location}
+            {location || "—"}
           </div>
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1">
