@@ -52,7 +52,7 @@ export async function listAds(filters: ListFilters = {}): Promise<{ ads: Ad[]; t
   return call("list", params);
 }
 
-export async function myAds(status = "active"): Promise<{ ads: Ad[]; active_count: number; total_views: number }> {
+export async function myAds(status: string = "active"): Promise<{ ads: Ad[]; active_count: number; total_views: number }> {
   return call("my", { status });
 }
 
@@ -70,6 +70,17 @@ export async function createAd(data: {
 
 export async function deleteAd(id: number): Promise<void> {
   await call("delete", {}, { id });
+}
+
+export async function pauseAd(id: number): Promise<{ new_status: string }> {
+  return call("pause", {}, { id });
+}
+
+export async function getUserStats(): Promise<{
+  active_ads: number; sold_ads: number; reviews_count: number;
+  avg_rating: number; joined_at: string;
+}> {
+  return call("user_stats");
 }
 
 export function formatTimeAgo(dateStr: string): string {

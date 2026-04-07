@@ -15,40 +15,34 @@ export default function Logo({ size = 36, showText = true }: LogoProps) {
         style={{ flexShrink: 0 }}
       >
         <defs>
-          <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+          <linearGradient id="lg1" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#7c3aed" />
             <stop offset="100%" stopColor="#06b6d4" />
           </linearGradient>
-          <linearGradient id="logoGrad2" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#a78bfa" />
-            <stop offset="100%" stopColor="#67e8f9" />
-          </linearGradient>
         </defs>
-        {/* Фон плашки */}
-        <rect width="40" height="40" rx="10" fill="url(#logoGrad)" />
-        {/* Тег/ценник — основной символ */}
+        {/* Фон */}
+        <rect width="40" height="40" rx="11" fill="url(#lg1)" />
+        {/* Буква O — два круга и M между ними */}
+        {/* Левый O */}
+        <circle cx="12" cy="20" r="5.5" fill="none" stroke="white" strokeWidth="2.5" />
+        {/* Правый O */}
+        <circle cx="28" cy="20" r="5.5" fill="none" stroke="white" strokeWidth="2.5" />
+        {/* M по центру */}
         <path
-          d="M10 12 L22 12 L30 20 L22 28 L10 28 Z"
-          fill="white"
-          opacity="0.95"
-        />
-        {/* Дырочка в теге */}
-        <circle cx="13.5" cy="18" r="2.5" fill="url(#logoGrad)" />
-        {/* Буква М как акцент */}
-        <path
-          d="M15 22 L16.5 17 L18 20 L19.5 17 L21 22"
-          stroke="url(#logoGrad)"
-          strokeWidth="1.8"
+          d="M17.5 24 L17.5 16 L20 20.5 L22.5 16 L22.5 24"
+          stroke="white"
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
         />
       </svg>
+
       {showText && (
-        <span className="font-display font-bold text-xl tracking-wide hidden sm:block">
-          <span className="gradient-text">Объяво</span>
-          <span className="text-foreground">Маркет</span>
-        </span>
+        <div className="hidden sm:flex flex-col leading-none">
+          <span className="font-display font-black text-xl tracking-widest gradient-text">OMO</span>
+          <span className="font-semibold text-[9px] tracking-[0.15em] text-muted-foreground uppercase">Маркет объявлений</span>
+        </div>
       )}
     </div>
   );

@@ -160,7 +160,7 @@ export default function Index() {
             </div>
           </div>
           <div className="mt-8 pt-6 border-t border-border/40 text-center text-xs text-muted-foreground">
-            © 2024–2026 ОбъявоМаркет. Все права защищены.
+            © 2024–2026 OMO · Маркет объявлений. Все права защищены.
           </div>
         </div>
       </footer>

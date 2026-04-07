@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { formatPrice } from "@/components/AdCard";
-import { formatTimeAgo, ListFilters } from "@/lib/adsApi";
+import { formatTimeAgo } from "@/lib/adsApi";
 import { sendMessage } from "@/lib/messagesApi";
 import { User } from "@/lib/auth";
+import MediaGallery from "@/components/MediaGallery";
 
 const ADS_URL = "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
 
@@ -22,16 +23,9 @@ interface AdPageProps {
   onAuthClick: () => void;
 }
 
-const categoryEmojis: Record<string, string> = {
-  electronics: "💻", transport: "🚗", realty: "🏠", clothes: "👗",
-  home: "🛋️", sport: "🏋️", beauty: "✨", kids: "🧸",
-  animals: "🐾", services: "🔧", hobby: "🎨", food: "🛒",
-};
-
 export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: AdPageProps) {
   const [ad, setAd] = useState<AdFull | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeImg, setActiveImg] = useState(0);
   const [showMsgForm, setShowMsgForm] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [msgSent, setMsgSent] = useState(false);
@@ -88,9 +82,6 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
     ? [{ url: ad.image_url, type: "photo" }]
     : [];
 
-  const photos = media.filter(m => m.type === "photo");
-  const video = media.find(m => m.type === "video");
-
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Back */}
@@ -104,40 +95,8 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: media */}
-        <div className="lg:col-span-3 space-y-3">
-          {/* Main image/video */}
-          <div className="rounded-2xl overflow-hidden bg-muted aspect-[4/3] flex items-center justify-center">
-            {media.length === 0 ? (
-              <span className="text-8xl">{categoryEmojis[ad.category] || "📦"}</span>
-            ) : media[activeImg]?.type === "video" ? (
-              <video src={media[activeImg].url} controls className="w-full h-full object-contain" />
-            ) : (
-              <img src={media[activeImg]?.url} alt={ad.title} className="w-full h-full object-cover" />
-            )}
-          </div>
-
-          {/* Thumbnails */}
-          {media.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {media.map((m, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveImg(i)}
-                  className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                    activeImg === i ? "border-violet-500" : "border-transparent"
-                  }`}
-                >
-                  {m.type === "video" ? (
-                    <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                      <Icon name="Play" size={20} className="text-white" />
-                    </div>
-                  ) : (
-                    <img src={m.url} alt="" className="w-full h-full object-cover" />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="lg:col-span-3">
+          <MediaGallery media={media} title={ad.title} />
         </div>
 
         {/* Right: info */}

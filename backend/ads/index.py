@@ -262,4 +262,66 @@ def handler(event: dict, context) -> dict:
         }
         return ok({"ad": ad})
 
+    # --- pause: приостановить/возобновить объявление ---
+    if action == "pause":
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+
+        ad_id = body.get("id") or qs.get("id")
+        if not ad_id:
+            conn.close()
+            return err(400, "Укажите id объявления")
+
+        cur = conn.cursor()
+        cur.execute(f"SELECT status FROM {SCHEMA}.ads WHERE id = %s AND user_id = %s", (int(ad_id), user_id))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return err(404, "Объявление не найдено")
+
+        new_status = "paused" if row[0] == "active" else "active"
+        cur.execute(f"""
+            UPDATE {SCHEMA}.ads SET status = %s, updated_at = NOW()
+            WHERE id = %s AND user_id = %s
+        """, (new_status, int(ad_id), user_id))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True, "new_status": new_status})
+
+    # --- user_stats: статистика пользователя для профиля ---
+    if action == "user_stats":
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+
+        cur = conn.cursor()
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE user_id = %s AND status = 'active'", (user_id,))
+        active_ads = cur.fetchone()[0]
+
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE user_id = %s AND status = 'archived'", (user_id,))
+        sold_ads = cur.fetchone()[0]
+
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.reviews WHERE target_user_id = %s", (user_id,))
+        reviews_count = cur.fetchone()[0]
+
+        cur.execute(f"SELECT ROUND(AVG(rating)::numeric, 1) FROM {SCHEMA}.reviews WHERE target_user_id = %s", (user_id,))
+        avg_rating = cur.fetchone()[0] or 0
+
+        cur.execute(f"SELECT created_at FROM {SCHEMA}.users WHERE id = %s", (user_id,))
+        joined = cur.fetchone()
+        conn.close()
+
+        return ok({
+            "active_ads": active_ads,
+            "sold_ads": sold_ads,
+            "reviews_count": reviews_count,
+            "avg_rating": float(avg_rating),
+            "joined_at": str(joined[0]) if joined else "",
+        })
+
     return err(400, "Неизвестное действие")

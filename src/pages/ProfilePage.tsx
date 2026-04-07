@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { User } from "@/lib/auth";
+import { getUserStats } from "@/lib/adsApi";
 
 interface ProfilePageProps {
   user: User | null;
@@ -17,12 +18,84 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
     city: user?.city || "",
     about: user?.about || "",
   });
+  const [stats, setStats] = useState({
+    active_ads: 0, sold_ads: 0, reviews_count: 0, avg_rating: 0, joined_at: "",
+  });
 
-  const stats = [
-    { label: "Объявлений", value: "3", icon: "FileText" },
-    { label: "Продано", value: "12", icon: "CheckCircle" },
-    { label: "Отзывов", value: "8", icon: "Star" },
-    { label: "Рейтинг", value: "4.9", icon: "TrendingUp" },
+  useEffect(() => {
+    if (user) {
+      getUserStats().then(s => setStats(s)).catch(() => {});
+    }
+  }, [user]);
+
+  const joinedDate = stats.joined_at
+    ? new Date(stats.joined_at).toLocaleDateString("ru-RU", { month: "long", year: "numeric" })
+    : "недавно";
+
+  const statCards = [
+    { label: "Объявлений", value: String(stats.active_ads), icon: "FileText", action: () => onNavigate?.("my-ads") },
+    { label: "Продано", value: String(stats.sold_ads), icon: "CheckCircle", action: () => onNavigate?.("my-ads") },
+    { label: "Отзывов", value: String(stats.reviews_count), icon: "Star", action: () => user && onNavigate?.(`reviews:${user.id}`) },
+    { label: "Рейтинг", value: stats.avg_rating > 0 ? stats.avg_rating.toFixed(1) : "—", icon: "TrendingUp", action: () => user && onNavigate?.(`reviews:${user.id}`) },
+  ];
+
+  const menuItems = [
+    {
+      icon: "FileText",
+      label: "Мои объявления",
+      desc: `${stats.active_ads} активных`,
+      action: () => onNavigate?.("my-ads"),
+      color: "bg-violet-100 text-violet-600",
+    },
+    {
+      icon: "Star",
+      label: "Мои отзывы",
+      desc: `${stats.reviews_count} отзывов · рейтинг ${stats.avg_rating > 0 ? stats.avg_rating.toFixed(1) : "—"}`,
+      action: () => user && onNavigate?.(`reviews:${user.id}`),
+      color: "bg-amber-100 text-amber-600",
+    },
+    {
+      icon: "MessageCircle",
+      label: "Сообщения",
+      desc: "Переписка с покупателями",
+      action: () => onNavigate?.("messages"),
+      color: "bg-cyan-100 text-cyan-600",
+    },
+    {
+      icon: "Heart",
+      label: "Избранное",
+      desc: "Сохранённые объявления",
+      action: () => onNavigate?.("favorites"),
+      color: "bg-rose-100 text-rose-600",
+    },
+    {
+      icon: "Bell",
+      label: "Уведомления",
+      desc: "Push-уведомления и email",
+      action: undefined,
+      color: "bg-indigo-100 text-indigo-600",
+    },
+    {
+      icon: "Shield",
+      label: "Безопасность",
+      desc: "Пароль и двухфакторная аутентификация",
+      action: undefined,
+      color: "bg-emerald-100 text-emerald-600",
+    },
+    {
+      icon: "HelpCircle",
+      label: "Помощь и поддержка",
+      desc: "Ответы на частые вопросы",
+      action: () => onNavigate?.("about"),
+      color: "bg-slate-100 text-slate-600",
+    },
+    {
+      icon: "LayoutDashboard",
+      label: "Панель администратора",
+      desc: "Только для администраторов",
+      action: () => onNavigate?.("admin"),
+      color: "bg-fuchsia-100 text-fuchsia-600",
+    },
   ];
 
   return (
@@ -35,7 +108,6 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
       {/* Profile card */}
       <div className="glass-card rounded-2xl p-6">
         <div className="flex items-start gap-5">
-          {/* Avatar */}
           <div className="relative shrink-0">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shadow-lg">
               <span className="text-white font-display font-bold text-2xl">
@@ -47,7 +119,6 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
             </button>
           </div>
 
-          {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h2 className="font-display text-xl font-bold">{profile.name}</h2>
@@ -56,29 +127,33 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
                 Верифицирован
               </span>
             </div>
-            <p className="text-muted-foreground text-sm mb-1">{profile.city}</p>
+            {profile.city && <p className="text-muted-foreground text-sm mb-1">{profile.city}</p>}
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Icon name="Calendar" size={11} />
-              На ОбъявоМаркет с апреля 2024
+              На OMO с {joinedDate}
             </p>
           </div>
 
           <button
             onClick={() => setEditing(!editing)}
-            className="flex items-center gap-1.5 px-4 py-2 border border-violet-200 text-violet-700 rounded-xl text-sm font-semibold hover:bg-violet-50 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 border border-violet-200 text-violet-700 rounded-xl text-sm font-semibold hover:bg-violet-50 transition-colors shrink-0"
           >
             <Icon name={editing ? "X" : "Edit3"} size={14} />
             {editing ? "Отмена" : "Изменить"}
           </button>
         </div>
 
-        {/* Stats */}
+        {/* Stats — кликабельные */}
         <div className="grid grid-cols-4 gap-3 mt-6">
-          {stats.map(stat => (
-            <div key={stat.label} className="bg-muted/50 rounded-xl p-3 text-center">
-              <div className="font-display font-bold text-lg gradient-text">{stat.value}</div>
+          {statCards.map(stat => (
+            <button
+              key={stat.label}
+              onClick={stat.action}
+              className="bg-muted/50 hover:bg-muted/80 rounded-xl p-3 text-center transition-colors group"
+            >
+              <div className="font-display font-bold text-lg gradient-text group-hover:opacity-80">{stat.value}</div>
               <div className="text-xs text-muted-foreground">{stat.label}</div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -99,7 +174,7 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
                 <input
                   type={field.type}
                   value={profile[field.key as keyof typeof profile]}
-                  onChange={e => setProfile({...profile, [field.key]: e.target.value})}
+                  onChange={e => setProfile({ ...profile, [field.key]: e.target.value })}
                   className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 transition-colors bg-white"
                 />
               </div>
@@ -109,7 +184,7 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
               <textarea
                 rows={3}
                 value={profile.about}
-                onChange={e => setProfile({...profile, about: e.target.value})}
+                onChange={e => setProfile({ ...profile, about: e.target.value })}
                 className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 transition-colors bg-white resize-none"
               />
             </div>
@@ -123,30 +198,25 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
         </div>
       )}
 
-      {/* Settings */}
+      {/* Menu */}
       <div className="glass-card rounded-2xl overflow-hidden">
-        {[
-          { icon: "Star", label: "Мои отзывы", desc: "Отзывы о вас от покупателей", action: () => user && onNavigate?.(`reviews:${user.id}`) },
-          { icon: "Bell", label: "Уведомления", desc: "Настройки push-уведомлений", action: undefined },
-          { icon: "Shield", label: "Безопасность", desc: "Пароль и двухфакторная аутентификация", action: undefined },
-          { icon: "HelpCircle", label: "Помощь и поддержка", desc: "Ответы на частые вопросы", action: undefined },
-          { icon: "LayoutDashboard", label: "Панель администратора", desc: "Только для администраторов", action: () => onNavigate?.("admin") },
-        ].map((item, i) => (
+        {menuItems.map((item, i) => (
           <button
             key={item.label}
             onClick={item.action}
-            className={`flex items-center gap-4 w-full px-5 py-4 text-left hover:bg-muted/40 transition-colors ${
-              i > 0 ? "border-t border-border/50" : ""
-            }`}
+            disabled={!item.action}
+            className={`flex items-center gap-4 w-full px-5 py-4 text-left transition-colors ${
+              item.action ? "hover:bg-muted/40 cursor-pointer" : "opacity-60 cursor-default"
+            } ${i > 0 ? "border-t border-border/50" : ""}`}
           >
-            <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
-              <Icon name={item.icon} size={18} className="text-violet-600" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.color}`}>
+              <Icon name={item.icon} size={18} />
             </div>
             <div className="flex-1">
               <div className="font-semibold text-sm">{item.label}</div>
               <div className="text-xs text-muted-foreground">{item.desc}</div>
             </div>
-            <Icon name="ChevronRight" size={16} className="text-muted-foreground" />
+            {item.action && <Icon name="ChevronRight" size={16} className="text-muted-foreground" />}
           </button>
         ))}
       </div>

@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
-import AdCard from "@/components/AdCard";
 import MediaUploader, { MediaItem } from "@/components/MediaUploader";
 import { categories } from "@/data/mockData";
-import { myAds, createAd, deleteAd, Ad, formatTimeAgo } from "@/lib/adsApi";
+import { myAds, createAd, deleteAd, pauseAd, Ad, formatTimeAgo } from "@/lib/adsApi";
+import { formatPrice } from "@/components/AdCard";
 
 interface MyAdsPageProps {
   adImages?: Record<number, string>;
@@ -11,9 +11,112 @@ interface MyAdsPageProps {
 
 const emptyForm = { title: "", price: "", description: "", category: "", city: "" };
 
+const categoryEmojis: Record<string, string> = {
+  electronics: "💻", transport: "🚗", realty: "🏠", clothes: "👗",
+  home: "🛋️", sport: "🏋️", beauty: "✨", kids: "🧸",
+  animals: "🐾", services: "🔧", hobby: "🎨", food: "🛒",
+};
+
+function MyAdCard({ ad, onDelete, onPause, className }: {
+  ad: Ad;
+  onDelete: (id: number) => void;
+  onPause: (id: number) => void;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const isPaused = ad.status === "paused";
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  return (
+    <div className={`glass-card rounded-2xl overflow-hidden ${isPaused ? "opacity-70" : ""} ${className || ""}`}>
+      {/* Image */}
+      <div className="relative h-44 bg-muted flex items-center justify-center">
+        {ad.image_url ? (
+          <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-5xl">{categoryEmojis[ad.category] || "📦"}</span>
+        )}
+        {isPaused && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+            <span className="bg-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">На паузе</span>
+          </div>
+        )}
+        {/* Меню */}
+        <div ref={menuRef} className="absolute top-2 right-2">
+          <button
+            onClick={() => setOpen(v => !v)}
+            className="w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors"
+          >
+            <Icon name="MoreVertical" size={15} className="text-foreground" />
+          </button>
+          {open && (
+            <div className="absolute right-0 top-10 bg-white rounded-2xl shadow-xl border border-border/50 py-1 min-w-[180px] z-30 animate-fade-in">
+              <button
+                onClick={() => { setOpen(false); onPause(ad.id); }}
+                className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors"
+              >
+                <Icon name={isPaused ? "Play" : "Pause"} size={15} className={isPaused ? "text-emerald-600" : "text-yellow-600"} />
+                <span>{isPaused ? "Возобновить" : "Приостановить"}</span>
+              </button>
+              <div className="my-1 border-t border-border/40" />
+              {!confirm ? (
+                <button
+                  onClick={() => setConfirm(true)}
+                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors"
+                >
+                  <Icon name="Trash2" size={15} />
+                  Удалить объявление
+                </button>
+              ) : (
+                <div className="px-4 py-2 space-y-2">
+                  <p className="text-xs text-muted-foreground">Точно удалить?</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setOpen(false); setConfirm(false); onDelete(ad.id); }}
+                      className="flex-1 py-1.5 bg-rose-500 text-white rounded-lg text-xs font-semibold hover:bg-rose-600"
+                    >Да</button>
+                    <button
+                      onClick={() => setConfirm(false)}
+                      className="flex-1 py-1.5 border border-border rounded-lg text-xs hover:bg-muted/50"
+                    >Нет</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        <div className="text-lg font-bold text-primary mb-1">{formatPrice(ad.price)}</div>
+        <h3 className="font-semibold text-sm line-clamp-2 mb-2 leading-snug">{ad.title}</h3>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Icon name="MapPin" size={11} />{ad.city || "—"}
+          </span>
+          <span className="flex items-center gap-1">
+            <Icon name="Eye" size={11} />{ad.views}
+          </span>
+          <span>{formatTimeAgo(ad.created_at)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MyAdsPage({ adImages }: MyAdsPageProps) {
   const [showForm, setShowForm] = useState(false);
-  const [tab, setTab] = useState<"active" | "archived">("active");
+  const [tab, setTab] = useState<"active" | "archived" | "paused">("active");
   const [formData, setFormData] = useState(emptyForm);
   const [ads, setAds] = useState<Ad[]>([]);
   const [activeCount, setActiveCount] = useState(0);
@@ -24,7 +127,7 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const loadAds = async (status: "active" | "archived" = "active") => {
+  const loadAds = async (status: "active" | "archived" | "paused" = "active") => {
     setLoading(true);
     try {
       const res = await myAds(status);
@@ -81,7 +184,21 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
       setAds(prev => prev.filter(a => a.id !== id));
       setActiveCount(prev => Math.max(0, prev - 1));
     } catch {
-      alert("Не удалось снять объявление");
+      alert("Не удалось удалить объявление");
+    }
+  };
+
+  const handlePause = async (id: number) => {
+    try {
+      const res = await pauseAd(id);
+      setAds(prev => prev.map(a => a.id === id ? { ...a, status: res.new_status } : a));
+      if (res.new_status === "paused") {
+        setActiveCount(prev => Math.max(0, prev - 1));
+      } else {
+        setActiveCount(prev => prev + 1);
+      }
+    } catch {
+      alert("Не удалось изменить статус объявления");
     }
   };
 
@@ -230,18 +347,22 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2">
-        {(["active", "archived"] as const).map((t) => (
+      <div className="flex gap-2 flex-wrap">
+        {([
+          ["active", `Активные (${activeCount})`],
+          ["paused", "На паузе"],
+          ["archived", "Архив"],
+        ] as const).map(([t, label]) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => setTab(t as "active" | "archived" | "paused")}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               tab === t
                 ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white"
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
-            {t === "active" ? `Активные (${activeCount})` : "Архив"}
+            {label}
           </button>
         ))}
       </div>
@@ -262,20 +383,20 @@ export default function MyAdsPage({ adImages }: MyAdsPageProps) {
       ) : ads.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {ads.map((ad, i) => (
-            <div key={ad.id} className={`animate-fade-in delay-${(i % 3 + 1) * 100}`}>
-              <AdCard
-                ad={{ ...ad, date: formatTimeAgo(ad.created_at) }}
-                showDeleteBtn={tab === "active"}
-                onDelete={handleDelete}
-              />
-            </div>
+            <MyAdCard
+              key={ad.id}
+              ad={ad}
+              onDelete={handleDelete}
+              onPause={handlePause}
+              className={`animate-fade-in delay-${(i % 3 + 1) * 100}`}
+            />
           ))}
         </div>
       ) : (
         <div className="text-center py-16 text-muted-foreground">
-          <Icon name={tab === "active" ? "FileText" : "Archive"} size={48} className="mx-auto mb-4 opacity-30" />
+          <Icon name={tab === "active" ? "FileText" : tab === "paused" ? "PauseCircle" : "Archive"} size={48} className="mx-auto mb-4 opacity-30" />
           <p className="text-lg font-medium">
-            {tab === "active" ? "У вас пока нет активных объявлений" : "Архив пуст"}
+            {tab === "active" ? "У вас пока нет активных объявлений" : tab === "paused" ? "Нет объявлений на паузе" : "Архив пуст"}
           </p>
           {tab === "active" && (
             <button
