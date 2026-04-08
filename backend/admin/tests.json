@@ -15,6 +15,24 @@
       "expectedStatus": 403,
       "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Approve ad without auth",
+      "method": "POST",
+      "path": "/?action=approve_ad",
+      "body": {"id": 1},
+      "expectedStatus": 403,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Reject ad without auth",
+      "method": "POST",
+      "path": "/?action=reject_ad",
+      "body": {"id": 1, "comment": "test"},
+      "expectedStatus": 403,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
     }
   ]
 }

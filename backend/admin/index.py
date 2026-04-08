@@ -1,6 +1,6 @@
 """
 Админ-панель ОбъявоМаркет.
-action: stats | users | ads | delete_ad | ban_user | unban_user | make_admin
+action: stats | users | ads | delete_ad | ban_user | unban_user | make_admin | approve_ad | reject_ad
 Требует прав администратора.
 """
 
@@ -228,6 +228,35 @@ def handler(event: dict, context) -> dict:
             INSERT INTO {SCHEMA}.admins (user_id) VALUES (%s)
             ON CONFLICT DO NOTHING
         """, (int(target_id),))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
+    # --- approve_ad: одобрить объявление ---
+    if action == "approve_ad":
+        ad_id = body.get("id")
+        if not ad_id:
+            conn.close()
+            return err(400, "Укажите id объявления")
+        cur.execute(f"""
+            UPDATE {SCHEMA}.ads SET status = 'active', moderation_comment = NULL, updated_at = NOW()
+            WHERE id = %s
+        """, (int(ad_id),))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
+    # --- reject_ad: отклонить объявление ---
+    if action == "reject_ad":
+        ad_id = body.get("id")
+        comment = (body.get("comment") or "").strip() or "Объявление не соответствует правилам"
+        if not ad_id:
+            conn.close()
+            return err(400, "Укажите id объявления")
+        cur.execute(f"""
+            UPDATE {SCHEMA}.ads SET status = 'rejected', moderation_comment = %s, updated_at = NOW()
+            WHERE id = %s
+        """, (comment, int(ad_id)))
         conn.commit()
         conn.close()
         return ok({"ok": True})

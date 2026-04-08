@@ -13,6 +13,7 @@ export interface Ad {
   created_at: string;
   seller_name?: string;
   status?: string;
+  moderation_comment?: string | null;
 }
 
 export interface ListFilters {
@@ -81,6 +82,10 @@ export async function getUserStats(): Promise<{
   avg_rating: number; joined_at: string; unread_messages: number;
 }> {
   return call("user_stats");
+}
+
+export async function getSiteStats(): Promise<{ total_ads: number; total_users: number; total_cities: number }> {
+  return call("site_stats");
 }
 
 export function formatTimeAgo(dateStr: string): string {

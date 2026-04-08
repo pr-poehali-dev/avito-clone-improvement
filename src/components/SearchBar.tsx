@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
-import { cities, categories } from "@/data/mockData";
+import { categories } from "@/data/mockData";
+import CitySelect from "@/components/CitySelect";
 
 interface SearchBarProps {
   onSearch?: (query: string, filters: { city: string; category: string; minPrice: string; maxPrice: string }) => void;
@@ -24,15 +25,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
       <div className="flex gap-2 search-glow bg-white rounded-2xl border border-border p-2 transition-all duration-200">
         <div className="flex items-center gap-2 px-3 border-r border-border text-sm text-muted-foreground min-w-0">
           <Icon name="MapPin" size={15} className="text-violet-500 shrink-0" />
-          <select
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            className="bg-transparent outline-none font-medium text-foreground cursor-pointer min-w-0 max-w-28"
-          >
-            {cities.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+          <CitySelect value={city} onChange={setCity} compact />
         </div>
 
         <input
@@ -123,7 +116,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
               Применить фильтры
             </button>
             <button
-              onClick={() => { setCategory(""); setMinPrice(""); setMaxPrice(""); setCity("Все города"); }}
+              onClick={() => { setCategory(""); setMinPrice(""); setMaxPrice(""); setCity(""); }}
               className="px-4 py-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:bg-muted/60 transition-colors"
             >
               Сбросить

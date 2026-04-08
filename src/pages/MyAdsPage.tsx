@@ -4,6 +4,7 @@ import MediaUploader, { MediaItem } from "@/components/MediaUploader";
 import { categories } from "@/data/mockData";
 import { myAds, createAd, deleteAd, pauseAd, Ad, formatTimeAgo } from "@/lib/adsApi";
 import { formatPrice } from "@/components/AdCard";
+import CitySelect from "@/components/CitySelect";
 
 interface MyAdsPageProps {
   adImages?: Record<number, string>;
@@ -29,6 +30,8 @@ function MyAdCard({ ad, onDelete, onPause, className }: {
   const [confirm, setConfirm] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isPaused = ad.status === "paused";
+  const isPending = ad.status === "pending";
+  const isRejected = ad.status === "rejected";
 
   useEffect(() => {
     const close = (e: MouseEvent) => {
@@ -39,7 +42,7 @@ function MyAdCard({ ad, onDelete, onPause, className }: {
   }, [open]);
 
   return (
-    <div className={`glass-card rounded-2xl overflow-hidden ${isPaused ? "opacity-70" : ""} ${className || ""}`}>
+    <div className={`glass-card rounded-2xl overflow-hidden ${(isPaused || isPending || isRejected) ? "opacity-75" : ""} ${className || ""}`}>
       {/* Image */}
       <div className="relative h-44 bg-muted flex items-center justify-center">
         {ad.image_url ? (
@@ -52,6 +55,16 @@ function MyAdCard({ ad, onDelete, onPause, className }: {
             <span className="bg-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">На паузе</span>
           </div>
         )}
+        {isPending && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <span className="bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">На проверке</span>
+          </div>
+        )}
+        {isRejected && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <span className="bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-full">Отклонено</span>
+          </div>
+        )}
         {/* Меню */}
         <div ref={menuRef} className="absolute top-2 right-2">
           <button
@@ -62,14 +75,18 @@ function MyAdCard({ ad, onDelete, onPause, className }: {
           </button>
           {open && (
             <div className="absolute right-0 top-10 bg-white rounded-2xl shadow-xl border border-border/50 py-1 min-w-[180px] z-30 animate-fade-in">
-              <button
-                onClick={() => { setOpen(false); onPause(ad.id); }}
-                className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors"
-              >
-                <Icon name={isPaused ? "Play" : "Pause"} size={15} className={isPaused ? "text-emerald-600" : "text-yellow-600"} />
-                <span>{isPaused ? "Возобновить" : "Приостановить"}</span>
-              </button>
-              <div className="my-1 border-t border-border/40" />
+              {!isPending && !isRejected && (
+                <>
+                  <button
+                    onClick={() => { setOpen(false); onPause(ad.id); }}
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors"
+                  >
+                    <Icon name={isPaused ? "Play" : "Pause"} size={15} className={isPaused ? "text-emerald-600" : "text-yellow-600"} />
+                    <span>{isPaused ? "Возобновить" : "Приостановить"}</span>
+                  </button>
+                  <div className="my-1 border-t border-border/40" />
+                </>
+              )}
               {!confirm ? (
                 <button
                   onClick={() => setConfirm(true)}
@@ -102,6 +119,23 @@ function MyAdCard({ ad, onDelete, onPause, className }: {
       <div className="p-4">
         <div className="text-lg font-bold text-primary mb-1">{formatPrice(ad.price)}</div>
         <h3 className="font-semibold text-sm line-clamp-2 mb-2 leading-snug">{ad.title}</h3>
+        {isPending && (
+          <div className="flex items-center gap-1.5 mb-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-2.5 py-1.5">
+            <Icon name="Clock" size={12} />
+            Объявление на проверке
+          </div>
+        )}
+        {isRejected && (
+          <div className="mb-2 text-xs text-rose-600 bg-rose-50 rounded-lg px-2.5 py-1.5">
+            <div className="flex items-center gap-1.5 font-semibold mb-0.5">
+              <Icon name="XCircle" size={12} />
+              Отклонено модерацией
+            </div>
+            {ad.moderation_comment && (
+              <div className="text-rose-500 mt-0.5">{ad.moderation_comment}</div>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
             <Icon name="MapPin" size={11} />{ad.city || "—"}
@@ -177,9 +211,9 @@ export default function MyAdsPage({ adImages, openForm, onFormOpened }: MyAdsPag
       setFormData(emptyForm);
       setMedia([]);
       setShowForm(false);
-      setTab("active");
-      await loadAds("active");
-      setTimeout(() => setSuccess(false), 4000);
+      setTab("paused");
+      await loadAds("paused");
+      setTimeout(() => setSuccess(false), 6000);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Ошибка при публикации");
     } finally {
@@ -230,10 +264,12 @@ export default function MyAdsPage({ adImages, openForm, onFormOpened }: MyAdsPag
 
       {/* Success toast */}
       {success && (
-        <div className="flex items-center gap-3 px-5 py-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-700 animate-fade-in">
-          <Icon name="CheckCircle" size={18} className="shrink-0" />
-          <span className="font-semibold">Объявление опубликовано!</span>
-          <span className="text-emerald-600 text-sm">Оно появилось на главной странице</span>
+        <div className="flex items-center gap-3 px-5 py-3.5 bg-blue-50 border border-blue-200 rounded-2xl text-blue-700 animate-fade-in">
+          <Icon name="Clock" size={18} className="shrink-0" />
+          <div>
+            <span className="font-semibold block">Объявление на проверке</span>
+            <span className="text-blue-600 text-sm">После одобрения модератором оно появится на сайте</span>
+          </div>
         </div>
       )}
 
@@ -288,13 +324,7 @@ export default function MyAdsPage({ adImages, openForm, onFormOpened }: MyAdsPag
 
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Город</label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={e => set("city", e.target.value)}
-                placeholder="Ваш город"
-                className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all bg-white"
-              />
+              <CitySelect value={formData.city} onChange={v => set("city", v)} placeholder="Выберите город" />
             </div>
 
             <div className="sm:col-span-2">

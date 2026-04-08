@@ -3,7 +3,7 @@ import SearchBar from "@/components/SearchBar";
 import AdCard from "@/components/AdCard";
 import Icon from "@/components/ui/icon";
 import { categories } from "@/data/mockData";
-import { listAds, Ad, ListFilters } from "@/lib/adsApi";
+import { listAds, getSiteStats, Ad, ListFilters } from "@/lib/adsApi";
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -11,18 +11,19 @@ interface HomePageProps {
   onAuthClick: () => void;
 }
 
-const stats = [
-  { label: "Объявлений", icon: "FileText", color: "text-violet-600" },
-  { label: "Пользователей", value: "890K", icon: "Users", color: "text-cyan-600" },
-  { label: "Городов", value: "1 200+", icon: "MapPin", color: "text-pink-600" },
-  { label: "Сделок в день", value: "48K", icon: "TrendingUp", color: "text-emerald-600" },
-];
-
 export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePageProps) {
   const [ads, setAds] = useState<Ad[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ListFilters>({});
+  const [siteStats, setSiteStats] = useState<{ total_users: number; total_cities: number } | null>(null);
+
+  const stats = [
+    { label: "Объявлений", icon: "FileText", color: "text-violet-600", value: total.toLocaleString("ru-RU") },
+    { label: "Пользователей", icon: "Users", color: "text-cyan-600", value: siteStats ? siteStats.total_users.toLocaleString("ru-RU") : "..." },
+    { label: "Городов", icon: "MapPin", color: "text-pink-600", value: siteStats ? siteStats.total_cities.toLocaleString("ru-RU") : "..." },
+    { label: "Сделок в день", icon: "TrendingUp", color: "text-emerald-600", value: "48K" },
+  ];
 
   const loadAds = async (f: ListFilters = {}) => {
     setLoading(true);
@@ -37,7 +38,10 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
     }
   };
 
-  useEffect(() => { loadAds(); }, []);
+  useEffect(() => {
+    loadAds();
+    getSiteStats().then(s => setSiteStats(s)).catch(() => {});
+  }, []);
 
   const handleSearch = (query: string, f: { city: string; category: string; minPrice: string; maxPrice: string }) => {
     const newFilters: ListFilters = {
@@ -80,9 +84,7 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
           {stats.map((stat, i) => (
             <div key={stat.label} className={`glass-card rounded-2xl p-4 text-center animate-fade-in delay-${(i + 4) * 100}`}>
               <Icon name={stat.icon} size={20} className={`${stat.color} mx-auto mb-1`} />
-              <div className="font-display font-bold text-xl">
-                {stat.label === "Объявлений" ? total.toLocaleString("ru-RU") : stat.value}
-              </div>
+              <div className="font-display font-bold text-xl">{stat.value}</div>
               <div className="text-xs text-muted-foreground">{stat.label}</div>
             </div>
           ))}

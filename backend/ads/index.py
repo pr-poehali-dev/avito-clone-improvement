@@ -1,6 +1,7 @@
 """
 CRUD объявлений ОбъявоМаркет.
-action: list | my | create | delete | get — query-параметр или в body.
+action: list | my | create | delete | get | pause | user_stats — query-параметр или в body.
+Новые объявления создаются со статусом pending (на модерации).
 """
 
 import json
@@ -117,12 +118,22 @@ def handler(event: dict, context) -> dict:
 
         status_filter = qs.get("status") or "active"
         cur = conn.cursor()
-        cur.execute(f"""
-            SELECT id, title, price, city, category, views, image_url, created_at, status
-            FROM {SCHEMA}.ads
-            WHERE user_id = %s AND status = %s
-            ORDER BY created_at DESC
-        """, (user_id, status_filter))
+
+        # Вкладка "На паузе" показывает paused + pending + rejected
+        if status_filter == "paused":
+            cur.execute(f"""
+                SELECT id, title, price, city, category, views, image_url, created_at, status, moderation_comment
+                FROM {SCHEMA}.ads
+                WHERE user_id = %s AND status IN ('paused', 'pending', 'rejected')
+                ORDER BY created_at DESC
+            """, (user_id,))
+        else:
+            cur.execute(f"""
+                SELECT id, title, price, city, category, views, image_url, created_at, status, moderation_comment
+                FROM {SCHEMA}.ads
+                WHERE user_id = %s AND status = %s
+                ORDER BY created_at DESC
+            """, (user_id, status_filter))
         rows = cur.fetchall()
 
         cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE user_id = %s AND status = 'active'", (user_id,))
@@ -137,6 +148,7 @@ def handler(event: dict, context) -> dict:
                 "id": r[0], "title": r[1], "price": r[2], "city": r[3],
                 "category": r[4], "views": r[5], "image_url": r[6],
                 "created_at": str(r[7]), "status": r[8],
+                "moderation_comment": r[9],
             })
         return ok({"ads": ads, "active_count": active_count, "total_views": total_views})
 
@@ -171,8 +183,8 @@ def handler(event: dict, context) -> dict:
 
         cur = conn.cursor()
         cur.execute(f"""
-            INSERT INTO {SCHEMA}.ads (user_id, title, description, price, category, city, image_url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO {SCHEMA}.ads (user_id, title, description, price, category, city, image_url, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')
             RETURNING id, title, price, city, category, views, image_url, created_at
         """, (user_id, title, description, price, category, city,
               media_urls[0]["url"] if media_urls else image_url))
@@ -282,7 +294,12 @@ def handler(event: dict, context) -> dict:
             conn.close()
             return err(404, "Объявление не найдено")
 
-        new_status = "paused" if row[0] == "active" else "active"
+        current = row[0]
+        # pending и rejected нельзя снять/поставить на паузу
+        if current in ("pending", "rejected"):
+            conn.close()
+            return err(400, "Нельзя изменить статус объявления на модерации")
+        new_status = "paused" if current == "active" else "active"
         cur.execute(f"""
             UPDATE {SCHEMA}.ads SET status = %s, updated_at = NOW()
             WHERE id = %s AND user_id = %s
@@ -352,5 +369,18 @@ def handler(event: dict, context) -> dict:
             count = 0
         conn.close()
         return ok({"count": count})
+
+    # --- site_stats: публичная статистика для главной страницы ---
+    if action == "site_stats":
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE status = 'active'")
+        total_ads = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.users")
+        total_users = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(DISTINCT city) FROM {SCHEMA}.users WHERE city IS NOT NULL AND city != ''")
+        total_cities = cur.fetchone()[0]
+        conn.close()
+        return ok({"total_ads": total_ads, "total_users": total_users, "total_cities": total_cities})
 
     return err(400, "Неизвестное действие")

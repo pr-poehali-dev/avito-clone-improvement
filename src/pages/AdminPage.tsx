@@ -28,7 +28,10 @@ export default function AdminPage() {
   const [ads, setAds] = useState<AdminAd[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("pending");
   const [forbidden, setForbidden] = useState(false);
+  const [rejectModal, setRejectModal] = useState<{ id: number; title: string } | null>(null);
+  const [rejectComment, setRejectComment] = useState("");
 
   const loadStats = async () => {
     setLoading(true);
@@ -45,9 +48,12 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  const loadAds = async (q = "") => {
+  const loadAds = async (q = "", status = statusFilter) => {
     setLoading(true);
-    const data = await adminCall("ads", q ? { search: q } : {});
+    const params: Record<string, string> = {};
+    if (q) params.search = q;
+    if (status) params.status = status;
+    const data = await adminCall("ads", params);
     if (!data.error) setAds(data.ads || []);
     setLoading(false);
   };
@@ -56,13 +62,18 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab === "users") loadUsers(search);
-    if (tab === "ads") loadAds(search);
+    if (tab === "ads") loadAds(search, statusFilter);
   }, [tab]);
 
   const handleSearch = (v: string) => {
     setSearch(v);
     if (tab === "users") loadUsers(v);
-    if (tab === "ads") loadAds(v);
+    if (tab === "ads") loadAds(v, statusFilter);
+  };
+
+  const handleStatusFilter = (s: string) => {
+    setStatusFilter(s);
+    loadAds(search, s);
   };
 
   const handleBan = async (userId: number, banned: boolean) => {
@@ -73,13 +84,27 @@ export default function AdminPage() {
   const handleDeleteAd = async (adId: number) => {
     if (!confirm("Удалить объявление?")) return;
     await adminCall("delete_ad", {}, { id: adId });
-    loadAds(search);
+    loadAds(search, statusFilter);
   };
 
   const handleMakeAdmin = async (userId: number) => {
     if (!confirm("Назначить администратором?")) return;
     await adminCall("make_admin", {}, { user_id: userId });
     loadUsers(search);
+  };
+
+  const handleApprove = async (adId: number) => {
+    await adminCall("approve_ad", {}, { id: adId });
+    loadAds(search, statusFilter);
+    loadStats();
+  };
+
+  const handleReject = async () => {
+    if (!rejectModal) return;
+    await adminCall("reject_ad", {}, { id: rejectModal.id, comment: rejectComment || "Объявление не соответствует правилам" });
+    setRejectModal(null);
+    setRejectComment("");
+    loadAds(search, statusFilter);
   };
 
   if (forbidden) {
@@ -100,6 +125,15 @@ export default function AdminPage() {
     { label: "Просмотров", value: stats.total_views, icon: "Eye", color: "text-pink-600", bg: "bg-pink-50", sub: "" },
     { label: "Новых объявлений", value: stats.new_ads_week, icon: "TrendingUp", color: "text-indigo-600", bg: "bg-indigo-50", sub: "за неделю" },
   ] : [];
+
+  const statusLabels: Record<string, { label: string; cls: string }> = {
+    active: { label: "Активно", cls: "bg-emerald-100 text-emerald-600" },
+    pending: { label: "На проверке", cls: "bg-blue-100 text-blue-600" },
+    paused: { label: "На паузе", cls: "bg-yellow-100 text-yellow-700" },
+    archived: { label: "Архив", cls: "bg-gray-100 text-gray-500" },
+    rejected: { label: "Отклонено", cls: "bg-rose-100 text-rose-600" },
+    deleted: { label: "Удалено", cls: "bg-rose-100 text-rose-600" },
+  };
 
   return (
     <div className="space-y-6">
@@ -227,61 +261,144 @@ export default function AdminPage() {
       {/* Ads */}
       {tab === "ads" && !loading && (
         <div className="space-y-4">
-          <input
-            type="text"
-            value={search}
-            onChange={e => handleSearch(e.target.value)}
-            placeholder="Поиск по названию..."
-            className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-white"
-          />
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              value={search}
+              onChange={e => handleSearch(e.target.value)}
+              placeholder="Поиск по названию..."
+              className="flex-1 min-w-[180px] border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-white"
+            />
+            <div className="flex gap-1.5 flex-wrap">
+              {[
+                ["pending", "На проверке"],
+                ["active", "Активные"],
+                ["rejected", "Отклонённые"],
+                ["paused", "На паузе"],
+                ["", "Все"],
+              ].map(([s, label]) => (
+                <button
+                  key={s}
+                  onClick={() => handleStatusFilter(s)}
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                    statusFilter === s
+                      ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {statusFilter === "pending" && ads.length > 0 && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+              <Icon name="Clock" size={16} className="shrink-0" />
+              <span>{ads.length} объявлений ждут проверки</span>
+            </div>
+          )}
+
           <div className="glass-card rounded-2xl overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="text-left px-4 py-3">Объявление</th>
                   <th className="text-left px-4 py-3 hidden sm:table-cell">Продавец</th>
-                  <th className="text-right px-4 py-3">Цена</th>
-                  <th className="text-center px-4 py-3 hidden md:table-cell">Просмотры</th>
+                  <th className="text-right px-4 py-3 hidden md:table-cell">Цена</th>
                   <th className="text-center px-4 py-3">Статус</th>
-                  <th className="text-center px-4 py-3">Удалить</th>
+                  <th className="text-center px-4 py-3">Действия</th>
                 </tr>
               </thead>
               <tbody>
-                {ads.map(a => (
-                  <tr key={a.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-medium line-clamp-1 max-w-[200px]">{a.title}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString("ru-RU")}</div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{a.seller}</td>
-                    <td className="px-4 py-3 text-right font-semibold">{formatPrice(a.price)}</td>
-                    <td className="px-4 py-3 text-center hidden md:table-cell">{a.views}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        a.status === "active" ? "bg-emerald-100 text-emerald-600"
-                        : a.status === "archived" ? "bg-gray-100 text-gray-500"
-                        : "bg-rose-100 text-rose-600"
-                      }`}>
-                        {a.status === "active" ? "Активно" : a.status === "archived" ? "Архив" : "Удалено"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {a.status !== "deleted" && (
-                        <button
-                          onClick={() => handleDeleteAd(a.id)}
-                          className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center mx-auto transition-colors"
-                        >
-                          <Icon name="Trash2" size={14} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {ads.map(a => {
+                  const sl = statusLabels[a.status] || { label: a.status, cls: "bg-gray-100 text-gray-500" };
+                  return (
+                    <tr key={a.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-medium line-clamp-1 max-w-[200px]">{a.title}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString("ru-RU")}</div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{a.seller}</td>
+                      <td className="px-4 py-3 text-right font-semibold hidden md:table-cell">{formatPrice(a.price)}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${sl.cls}`}>
+                          {sl.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-1">
+                          {a.status === "pending" && (
+                            <>
+                              <button
+                                onClick={() => handleApprove(a.id)}
+                                title="Одобрить"
+                                className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 flex items-center justify-center transition-colors"
+                              >
+                                <Icon name="Check" size={14} />
+                              </button>
+                              <button
+                                onClick={() => { setRejectModal({ id: a.id, title: a.title }); setRejectComment(""); }}
+                                title="Отклонить"
+                                className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-colors"
+                              >
+                                <Icon name="X" size={14} />
+                              </button>
+                            </>
+                          )}
+                          {a.status !== "deleted" && (
+                            <button
+                              onClick={() => handleDeleteAd(a.id)}
+                              title="Удалить"
+                              className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 flex items-center justify-center transition-colors"
+                            >
+                              <Icon name="Trash2" size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {ads.length === 0 && (
               <div className="text-center py-10 text-muted-foreground text-sm">Объявления не найдены</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Reject modal */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="font-display text-lg font-bold mb-1">Отклонить объявление</h3>
+            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">«{rejectModal.title}»</p>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+              Причина отклонения
+            </label>
+            <textarea
+              rows={3}
+              value={rejectComment}
+              onChange={e => setRejectComment(e.target.value)}
+              placeholder="Укажите причину для пользователя..."
+              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 resize-none mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={handleReject}
+                className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl font-semibold hover:bg-rose-600 transition-colors"
+              >
+                Отклонить
+              </button>
+              <button
+                onClick={() => setRejectModal(null)}
+                className="flex-1 py-2.5 border border-border rounded-xl text-muted-foreground hover:bg-muted/60 transition-colors"
+              >
+                Отмена
+              </button>
+            </div>
           </div>
         </div>
       )}
