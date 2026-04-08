@@ -20,7 +20,7 @@ export default function SearchBar({ onSearch }: SearchBarProps) {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full relative z-20">
       {/* Main search */}
       <div className="flex gap-2 search-glow bg-white rounded-2xl border border-border p-2 transition-all duration-200">
         <div className="flex items-center gap-2 px-3 border-r border-border text-sm text-muted-foreground min-w-0">

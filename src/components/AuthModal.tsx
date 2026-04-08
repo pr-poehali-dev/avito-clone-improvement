@@ -19,17 +19,35 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    const attempt = async () => {
+      if (mode === "login") {
+        return await login(form.email, form.password);
+      } else {
+        return await register(form.name, form.email, form.password, form.city);
+      }
+    };
+
     try {
       let res;
-      if (mode === "login") {
-        res = await login(form.email, form.password);
-      } else {
-        res = await register(form.name, form.email, form.password, form.city);
+      try {
+        res = await attempt();
+      } catch (e: unknown) {
+        if (e instanceof TypeError && e.message.includes("fetch")) {
+          // Сетевой сбой — пробуем ещё раз через 1 секунду
+          await new Promise(r => setTimeout(r, 1000));
+          res = await attempt();
+        } else {
+          throw e;
+        }
       }
       setToken(res.token);
       onSuccess(res.user, res.token);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+      if (e instanceof TypeError && e.message.includes("fetch")) {
+        setError("Нет соединения с сервером. Проверьте интернет и попробуйте снова.");
+      } else {
+        setError(e instanceof Error ? e.message : "Ошибка");
+      }
     } finally {
       setLoading(false);
     }

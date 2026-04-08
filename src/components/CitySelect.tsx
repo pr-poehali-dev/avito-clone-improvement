@@ -223,7 +223,7 @@ export default function CitySelect({ value, onChange, placeholder = "Выбер�
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full mt-1 left-0 w-64 bg-white rounded-2xl shadow-xl border border-border/60 overflow-hidden animate-fade-in">
+        <div className="absolute z-[100] top-full mt-1 left-0 w-64 bg-white rounded-2xl shadow-xl border border-border/60 overflow-hidden animate-fade-in">
           <div className="p-2 border-b border-border/40">
             <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 rounded-xl">
               <Icon name="Search" size={14} className="text-muted-foreground shrink-0" />
