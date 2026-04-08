@@ -122,14 +122,21 @@ def handler(event: dict, context) -> dict:
         # Вкладка "На паузе" показывает paused + pending + rejected
         if status_filter == "paused":
             cur.execute(f"""
-                SELECT id, title, price, city, category, views, image_url, created_at, status, moderation_comment
+                SELECT id, title, price, city, category, views, image_url, created_at, status, moderation_comment, sold_on_omo, sold_at
                 FROM {SCHEMA}.ads
                 WHERE user_id = %s AND status IN ('paused', 'pending', 'rejected')
                 ORDER BY created_at DESC
             """, (user_id,))
+        elif status_filter == "archived":
+            cur.execute(f"""
+                SELECT id, title, price, city, category, views, image_url, created_at, status, moderation_comment, sold_on_omo, sold_at
+                FROM {SCHEMA}.ads
+                WHERE user_id = %s AND status IN ('archived', 'sold')
+                ORDER BY created_at DESC
+            """, (user_id,))
         else:
             cur.execute(f"""
-                SELECT id, title, price, city, category, views, image_url, created_at, status, moderation_comment
+                SELECT id, title, price, city, category, views, image_url, created_at, status, moderation_comment, sold_on_omo, sold_at
                 FROM {SCHEMA}.ads
                 WHERE user_id = %s AND status = %s
                 ORDER BY created_at DESC
@@ -149,6 +156,8 @@ def handler(event: dict, context) -> dict:
                 "category": r[4], "views": r[5], "image_url": r[6],
                 "created_at": str(r[7]), "status": r[8],
                 "moderation_comment": r[9],
+                "sold_on_omo": r[10],
+                "sold_at": str(r[11]) if r[11] else None,
             })
         return ok({"ads": ads, "active_count": active_count, "total_views": total_views})
 
@@ -206,6 +215,37 @@ def handler(event: dict, context) -> dict:
             "id": row[0], "title": row[1], "price": row[2], "city": row[3],
             "category": row[4], "views": row[5], "image_url": row[6], "created_at": str(row[7]),
         }})
+
+    # --- mark_sold: пометить объявление как проданное ---
+    if action == "mark_sold":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+
+        ad_id = body.get("id")
+        sold_on_omo = bool(body.get("sold_on_omo", False))
+
+        if not ad_id:
+            conn.close()
+            return err(400, "Укажите id объявления")
+
+        cur = conn.cursor()
+        cur.execute(f"""
+            UPDATE {SCHEMA}.ads
+            SET status = 'sold', sold_on_omo = %s, sold_at = NOW(), updated_at = NOW()
+            WHERE id = %s AND user_id = %s AND status NOT IN ('deleted', 'sold')
+        """, (sold_on_omo, int(ad_id), user_id))
+        affected = cur.rowcount
+        conn.commit()
+        conn.close()
+
+        if affected == 0:
+            return err(404, "Объявление не найдено или уже продано")
+        return ok({"ok": True, "sold_on_omo": sold_on_omo})
 
     # --- delete (soft) ---
     if action == "delete":
@@ -322,7 +362,7 @@ def handler(event: dict, context) -> dict:
         cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE user_id = %s AND status = 'active'", (user_id,))
         active_ads = cur.fetchone()[0]
 
-        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE user_id = %s AND status = 'archived'", (user_id,))
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE user_id = %s AND status IN ('archived', 'sold')", (user_id,))
         sold_ads = cur.fetchone()[0]
 
         cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.reviews WHERE target_user_id = %s", (user_id,))
@@ -427,7 +467,7 @@ def handler(event: dict, context) -> dict:
         total_users = cur.fetchone()[0]
         cur.execute(f"SELECT COUNT(DISTINCT city) FROM {SCHEMA}.users WHERE city IS NOT NULL AND city != ''")
         total_cities = cur.fetchone()[0]
-        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE status != 'deleted'")
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE status = 'sold' AND sold_on_omo = TRUE")
         total_deals = cur.fetchone()[0]
         conn.close()
         return ok({"total_ads": total_ads, "total_users": total_users, "total_cities": total_cities, "total_deals": total_deals})

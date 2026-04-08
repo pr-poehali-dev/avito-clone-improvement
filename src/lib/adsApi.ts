@@ -14,6 +14,8 @@ export interface Ad {
   seller_name?: string;
   status?: string;
   moderation_comment?: string | null;
+  sold_on_omo?: boolean;
+  sold_at?: string | null;
 }
 
 export interface ListFilters {
@@ -75,6 +77,10 @@ export async function deleteAd(id: number): Promise<void> {
 
 export async function pauseAd(id: number): Promise<{ new_status: string }> {
   return call("pause", {}, { id });
+}
+
+export async function markSold(id: number, soldOnOmo: boolean): Promise<{ ok: boolean; sold_on_omo: boolean }> {
+  return call("mark_sold", {}, { id, sold_on_omo: soldOnOmo });
 }
 
 export async function getUserStats(): Promise<{

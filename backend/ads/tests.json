@@ -47,7 +47,7 @@
       "method": "GET",
       "path": "/?action=site_stats",
       "expectedStatus": 200,
-      "expectedBody": {"total_ads": 1, "total_users": 2, "total_cities": 2, "total_deals": 1},
+      "expectedBody": {"total_ads": 1, "total_users": 2, "total_cities": 2, "total_deals": 0},
       "bodyMatcher": "partial"
     },
     {
