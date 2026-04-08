@@ -83,7 +83,7 @@ export default function Index() {
     switch (activePage) {
       case "home": return <HomePage onNavigate={handleNavigate} adImages={{}} onAuthClick={() => setShowAuth(true)} />;
       case "categories": return <CategoriesPage onNavigate={handleNavigate} />;
-      case "my-ads": return <MyAdsPage openForm={openAdForm} onFormOpened={() => setOpenAdForm(false)} />;
+      case "my-ads": return <MyAdsPage openForm={openAdForm} onFormOpened={() => setOpenAdForm(false)} onNavigate={handleNavigate} />;
       case "favorites": return <FavoritesPage adImages={{}} onNavigate={handleNavigate} />;
       case "messages": return <MessagesPage user={user} onAuthClick={() => setShowAuth(true)} />;
       case "profile": return <ProfilePage user={user} onLogout={handleLogout} onNavigate={handleNavigate} />;

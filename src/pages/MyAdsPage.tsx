@@ -10,6 +10,7 @@ interface MyAdsPageProps {
   adImages?: Record<number, string>;
   openForm?: boolean;
   onFormOpened?: () => void;
+  onNavigate?: (page: string) => void;
 }
 
 const emptyForm = { title: "", price: "", description: "", category: "", city: "" };
@@ -20,10 +21,11 @@ const categoryEmojis: Record<string, string> = {
   animals: "🐾", services: "🔧", hobby: "🎨", food: "🛒",
 };
 
-function MyAdCard({ ad, onDelete, onPause, className }: {
+function MyAdCard({ ad, onDelete, onPause, onNavigate, className }: {
   ad: Ad;
   onDelete: (id: number) => void;
   onPause: (id: number) => void;
+  onNavigate?: (page: string) => void;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -44,7 +46,10 @@ function MyAdCard({ ad, onDelete, onPause, className }: {
   return (
     <div className={`glass-card rounded-2xl overflow-hidden ${(isPaused || isPending || isRejected) ? "opacity-75" : ""} ${className || ""}`}>
       {/* Image */}
-      <div className="relative h-44 bg-muted flex items-center justify-center">
+      <div
+        className="relative h-44 bg-muted flex items-center justify-center cursor-pointer"
+        onClick={() => onNavigate?.(`ad:${ad.id}`)}
+      >
         {ad.image_url ? (
           <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
         ) : (
@@ -118,7 +123,10 @@ function MyAdCard({ ad, onDelete, onPause, className }: {
       {/* Content */}
       <div className="p-4">
         <div className="text-lg font-bold text-primary mb-1">{formatPrice(ad.price)}</div>
-        <h3 className="font-semibold text-sm line-clamp-2 mb-2 leading-snug">{ad.title}</h3>
+        <h3
+          className="font-semibold text-sm line-clamp-2 mb-2 leading-snug cursor-pointer hover:text-violet-600 transition-colors"
+          onClick={() => onNavigate?.(`ad:${ad.id}`)}
+        >{ad.title}</h3>
         {isPending && (
           <div className="flex items-center gap-1.5 mb-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-2.5 py-1.5">
             <Icon name="Clock" size={12} />
@@ -150,7 +158,7 @@ function MyAdCard({ ad, onDelete, onPause, className }: {
   );
 }
 
-export default function MyAdsPage({ adImages, openForm, onFormOpened }: MyAdsPageProps) {
+export default function MyAdsPage({ adImages, openForm, onFormOpened, onNavigate }: MyAdsPageProps) {
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
@@ -427,6 +435,7 @@ export default function MyAdsPage({ adImages, openForm, onFormOpened }: MyAdsPag
               ad={ad}
               onDelete={handleDelete}
               onPause={handlePause}
+              onNavigate={onNavigate}
               className={`animate-fade-in delay-${(i % 3 + 1) * 100}`}
             />
           ))}
