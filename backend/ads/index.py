@@ -427,7 +427,9 @@ def handler(event: dict, context) -> dict:
         total_users = cur.fetchone()[0]
         cur.execute(f"SELECT COUNT(DISTINCT city) FROM {SCHEMA}.users WHERE city IS NOT NULL AND city != ''")
         total_cities = cur.fetchone()[0]
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ads WHERE status != 'deleted'")
+        total_deals = cur.fetchone()[0]
         conn.close()
-        return ok({"total_ads": total_ads, "total_users": total_users, "total_cities": total_cities})
+        return ok({"total_ads": total_ads, "total_users": total_users, "total_cities": total_cities, "total_deals": total_deals})
 
     return err(400, "Неизвестное действие")

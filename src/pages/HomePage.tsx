@@ -16,13 +16,13 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ListFilters>({});
-  const [siteStats, setSiteStats] = useState<{ total_users: number; total_cities: number } | null>(null);
+  const [siteStats, setSiteStats] = useState<{ total_users: number; total_cities: number; total_deals: number } | null>(null);
 
   const stats = [
     { label: "Объявлений", icon: "FileText", color: "text-violet-600", value: total.toLocaleString("ru-RU") },
     { label: "Пользователей", icon: "Users", color: "text-cyan-600", value: siteStats ? siteStats.total_users.toLocaleString("ru-RU") : "..." },
     { label: "Городов", icon: "MapPin", color: "text-pink-600", value: siteStats ? siteStats.total_cities.toLocaleString("ru-RU") : "..." },
-    { label: "Сделок в день", icon: "TrendingUp", color: "text-emerald-600", value: "48K" },
+    { label: "Сделок", icon: "TrendingUp", color: "text-emerald-600", value: siteStats ? siteStats.total_deals.toLocaleString("ru-RU") : "..." },
   ];
 
   const loadAds = async (f: ListFilters = {}) => {

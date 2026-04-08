@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Icon from "@/components/ui/icon";
 import { login, register, setToken, User } from "@/lib/auth";
+import CitySelect from "@/components/CitySelect";
 
 interface AuthModalProps {
   onClose: () => void;
@@ -147,16 +148,11 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
             {mode === "register" && (
               <div>
                 <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Город</label>
-                <div className="relative">
-                  <Icon name="MapPin" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={form.city}
-                    onChange={e => set("city", e.target.value)}
-                    placeholder="Ваш город"
-                    className="w-full border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all bg-white"
-                  />
-                </div>
+                <CitySelect
+                  value={form.city}
+                  onChange={v => set("city", v)}
+                  placeholder="Ваш город"
+                />
               </div>
             )}
 

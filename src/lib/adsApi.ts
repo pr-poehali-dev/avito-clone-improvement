@@ -84,7 +84,7 @@ export async function getUserStats(): Promise<{
   return call("user_stats");
 }
 
-export async function getSiteStats(): Promise<{ total_ads: number; total_users: number; total_cities: number }> {
+export async function getSiteStats(): Promise<{ total_ads: number; total_users: number; total_cities: number; total_deals: number }> {
   return call("site_stats");
 }
 
