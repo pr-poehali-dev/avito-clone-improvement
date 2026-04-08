@@ -5,7 +5,7 @@
       "method": "GET",
       "path": "/?action=list",
       "expectedStatus": 200,
-      "expectedBody": {"ads": []},
+      "expectedBody": {"total": 0},
       "bodyMatcher": "partial"
     },
     {
@@ -47,7 +47,15 @@
       "method": "GET",
       "path": "/?action=site_stats",
       "expectedStatus": 200,
-      "expectedBody": {"total_ads": 0},
+      "expectedBody": {"total_users": 0},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Notifications without auth",
+      "method": "GET",
+      "path": "/?action=notifications",
+      "expectedStatus": 200,
+      "expectedBody": {"notifications": [], "unread_count": 0},
       "bodyMatcher": "partial"
     }
   ]

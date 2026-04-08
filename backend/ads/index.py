@@ -370,6 +370,53 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return ok({"count": count})
 
+    # --- notifications: список уведомлений пользователя ---
+    if action == "notifications":
+        if not token:
+            return ok({"notifications": [], "unread_count": 0})
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return ok({"notifications": [], "unread_count": 0})
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT id, type, title, text, ad_id, is_read, created_at
+            FROM {SCHEMA}.notifications
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            LIMIT 30
+        """, (user_id,))
+        rows = cur.fetchall()
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.notifications WHERE user_id = %s AND is_read = FALSE", (user_id,))
+        unread_count = cur.fetchone()[0]
+        conn.close()
+        notifs = []
+        for r in rows:
+            notifs.append({"id": r[0], "type": r[1], "title": r[2], "text": r[3],
+                           "ad_id": r[4], "is_read": r[5], "created_at": str(r[6])})
+        return ok({"notifications": notifs, "unread_count": unread_count})
+
+    # --- notifications_read: пометить уведомления прочитанными ---
+    if action == "notifications_read":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        notif_id = body.get("id")
+        cur = conn.cursor()
+        if notif_id:
+            cur.execute(f"UPDATE {SCHEMA}.notifications SET is_read = TRUE WHERE id = %s AND user_id = %s",
+                        (int(notif_id), user_id))
+        else:
+            cur.execute(f"UPDATE {SCHEMA}.notifications SET is_read = TRUE WHERE user_id = %s", (user_id,))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
     # --- site_stats: публичная статистика для главной страницы ---
     if action == "site_stats":
         conn = get_conn()

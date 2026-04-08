@@ -242,6 +242,14 @@ def handler(event: dict, context) -> dict:
             UPDATE {SCHEMA}.ads SET status = 'active', moderation_comment = NULL, updated_at = NOW()
             WHERE id = %s
         """, (int(ad_id),))
+        # Получаем владельца и заголовок
+        cur.execute(f"SELECT user_id, title FROM {SCHEMA}.ads WHERE id = %s", (int(ad_id),))
+        ad_row = cur.fetchone()
+        if ad_row:
+            cur.execute(f"""
+                INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+                VALUES (%s, 'approved', 'Объявление одобрено', %s, %s)
+            """, (ad_row[0], f'Ваше объявление «{ad_row[1]}» прошло проверку и теперь видно всем покупателям.', int(ad_id)))
         conn.commit()
         conn.close()
         return ok({"ok": True})
@@ -257,6 +265,14 @@ def handler(event: dict, context) -> dict:
             UPDATE {SCHEMA}.ads SET status = 'rejected', moderation_comment = %s, updated_at = NOW()
             WHERE id = %s
         """, (comment, int(ad_id)))
+        # Получаем владельца и заголовок
+        cur.execute(f"SELECT user_id, title FROM {SCHEMA}.ads WHERE id = %s", (int(ad_id),))
+        ad_row = cur.fetchone()
+        if ad_row:
+            cur.execute(f"""
+                INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+                VALUES (%s, 'rejected', 'Объявление отклонено', %s, %s)
+            """, (ad_row[0], f'Ваше объявление «{ad_row[1]}» было отклонено. Причина: {comment}', int(ad_id)))
         conn.commit()
         conn.close()
         return ok({"ok": True})

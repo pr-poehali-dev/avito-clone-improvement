@@ -4,6 +4,7 @@ import Logo from "@/components/Logo";
 import { User } from "@/lib/auth";
 import { getFavoriteIds, subscribeFavorites } from "@/lib/favorites";
 import { getToken } from "@/lib/auth";
+import NotificationBell from "@/components/NotificationBell";
 
 const ADS_URL =
   "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
@@ -151,6 +152,7 @@ export default function Navbar({
                   <Icon name="Plus" size={15} />
                   Подать объявление
                 </button>
+                <NotificationBell onNavigate={onNavigate} />
                 <button
                   onClick={() => handleNav("profile")}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-muted/60 transition-colors"

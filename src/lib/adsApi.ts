@@ -88,6 +88,24 @@ export async function getSiteStats(): Promise<{ total_ads: number; total_users: 
   return call("site_stats");
 }
 
+export interface Notification {
+  id: number;
+  type: string;
+  title: string;
+  text: string;
+  ad_id: number | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export async function getNotifications(): Promise<{ notifications: Notification[]; unread_count: number }> {
+  return call("notifications");
+}
+
+export async function markNotificationsRead(id?: number): Promise<void> {
+  await call("notifications_read", {}, id ? { id } : {});
+}
+
 export function formatTimeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const diff = Date.now() - date.getTime();
