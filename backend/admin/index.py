@@ -277,5 +277,40 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return ok({"ok": True})
 
+    # --- user_activity: история активности пользователей для админа ---
+    if action == "user_activity":
+        limit = int(qs.get("limit") or 50)
+        cur.execute(f"""
+            SELECT
+                u.id, u.name, u.email,
+                u.created_at as reg_date,
+                COUNT(DISTINCT a.id) FILTER (WHERE a.status != 'deleted') as ads_count,
+                COUNT(DISTINCT m.id) as messages_count,
+                COUNT(DISTINCT r.id) as reviews_count,
+                MAX(GREATEST(
+                    COALESCE(u.created_at, '1970-01-01'),
+                    COALESCE((SELECT MAX(created_at) FROM {SCHEMA}.ads WHERE user_id = u.id), '1970-01-01'),
+                    COALESCE((SELECT MAX(created_at) FROM {SCHEMA}.messages WHERE sender_id = u.id), '1970-01-01')
+                )) as last_active
+            FROM {SCHEMA}.users u
+            LEFT JOIN {SCHEMA}.ads a ON a.user_id = u.id
+            LEFT JOIN {SCHEMA}.messages m ON m.sender_id = u.id
+            LEFT JOIN {SCHEMA}.reviews r ON r.author_id = u.id
+            GROUP BY u.id, u.name, u.email, u.created_at
+            ORDER BY last_active DESC NULLS LAST
+            LIMIT {limit}
+        """)
+        rows = cur.fetchall()
+        conn.close()
+        activity = []
+        for r in rows:
+            activity.append({
+                "id": r[0], "name": r[1], "email": r[2],
+                "reg_date": str(r[3]),
+                "ads_count": r[4], "messages_count": r[5], "reviews_count": r[6],
+                "last_active": str(r[7]) if r[7] else None,
+            })
+        return ok({"activity": activity})
+
     conn.close()
     return err(400, "Неизвестное действие")

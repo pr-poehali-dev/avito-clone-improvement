@@ -82,6 +82,23 @@ def handler(event: dict, context) -> dict:
             RETURNING id, created_at
         """, (user_id, int(receiver_id), ad_id, text))
         row = cur.fetchone()
+
+        # Уведомление получателю о новом сообщении
+        cur.execute(f"SELECT name FROM {SCHEMA}.users WHERE id = %s", (user_id,))
+        sender_name = (cur.fetchone() or ["Пользователь"])[0]
+        ad_title = None
+        if ad_id:
+            cur.execute(f"SELECT title FROM {SCHEMA}.ads WHERE id = %s", (int(ad_id),))
+            ad_row = cur.fetchone()
+            ad_title = ad_row[0] if ad_row else None
+        notif_text = f"{sender_name}: {text[:80]}{'...' if len(text) > 80 else ''}"
+        if ad_title:
+            notif_text = f"{sender_name} по объявлению «{ad_title[:40]}»: {text[:60]}"
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+            VALUES (%s, 'message', 'Новое сообщение', %s, %s)
+        """, (int(receiver_id), notif_text, ad_id))
+
         conn.commit()
         conn.close()
         return ok({"id": row[0], "created_at": str(row[1])})
@@ -261,6 +278,17 @@ def handler(event: dict, context) -> dict:
             RETURNING id, created_at
         """, (user_id, int(target_id), ad_id, int(rating), text or None))
         row = cur.fetchone()
+
+        # Уведомление тому, кому оставили отзыв
+        cur.execute(f"SELECT name FROM {SCHEMA}.users WHERE id = %s", (user_id,))
+        author_name = (cur.fetchone() or ["Пользователь"])[0]
+        stars = "⭐" * int(rating)
+        notif_text = f"{author_name} оставил отзыв {stars}: {(text or '')[:80]}"
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+            VALUES (%s, 'review', 'Новый отзыв', %s, %s)
+        """, (int(target_id), notif_text, ad_id))
+
         conn.commit()
         conn.close()
         return ok({"id": row[0], "created_at": str(row[1])})

@@ -5,6 +5,8 @@ import Icon from "@/components/ui/icon";
 import { categories } from "@/data/mockData";
 import { listAds, getSiteStats, getViewedIds, Ad, ListFilters } from "@/lib/adsApi";
 import { getToken } from "@/lib/auth";
+import RecommendationsBlock from "@/components/RecommendationsBlock";
+import HotAdsBlock from "@/components/HotAdsBlock";
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -168,6 +170,12 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
           </div>
         )}
       </section>
+
+      {/* Горячие объявления */}
+      <HotAdsBlock onNavigate={onNavigate} viewedIds={viewedIds} />
+
+      {/* Рекомендации */}
+      <RecommendationsBlock onNavigate={onNavigate} viewedIds={viewedIds} />
 
       {/* CTA banner */}
       <section>

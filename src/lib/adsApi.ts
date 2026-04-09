@@ -139,6 +139,14 @@ export async function getOffers(adId: number): Promise<{ offers: Array<{ id: num
   return call("get_offers", { ad_id: String(adId) });
 }
 
+export async function getRecommendations(limit = 8): Promise<{ ads: Ad[]; based_on: string[] }> {
+  return call("recommendations", { limit: String(limit) });
+}
+
+export async function getHotAds(limit = 8): Promise<{ ads: Ad[] }> {
+  return call("hot_ads", { limit: String(limit) });
+}
+
 export function formatTimeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const diff = Date.now() - date.getTime();

@@ -672,4 +672,101 @@ def handler(event: dict, context) -> dict:
                    "created_at": str(r[4]), "buyer_name": r[5]} for r in rows]
         return ok({"offers": offers})
 
+    # --- recommendations: объявления на основе истории просмотров ---
+    if action == "recommendations":
+        limit = int(qs.get("limit") or 8)
+        conn = get_conn()
+        cur = conn.cursor()
+
+        if token:
+            user_id = get_user_id(token, conn)
+        else:
+            user_id = None
+
+        if user_id:
+            # Берём категории из последних 20 просмотров
+            cur.execute(f"""
+                SELECT a.category, COUNT(*) as cnt
+                FROM {SCHEMA}.viewed_ads v
+                JOIN {SCHEMA}.ads a ON a.id = v.ad_id
+                WHERE v.user_id = %s
+                GROUP BY a.category
+                ORDER BY cnt DESC
+                LIMIT 3
+            """, (user_id,))
+            top_cats = [r[0] for r in cur.fetchall()]
+
+            if top_cats:
+                cats_sql = "', '".join(top_cats)
+                cur.execute(f"""
+                    SELECT a.id, a.title, a.price, a.city, a.category, a.views,
+                           a.image_url, a.created_at, u.name as seller_name,
+                           (a.views * 2 + EXTRACT(EPOCH FROM (NOW() - a.created_at)) / -3600) as score
+                    FROM {SCHEMA}.ads a
+                    JOIN {SCHEMA}.users u ON u.id = a.user_id
+                    WHERE a.status = 'active'
+                      AND a.category IN ('{cats_sql}')
+                      AND a.id NOT IN (
+                          SELECT ad_id FROM {SCHEMA}.viewed_ads WHERE user_id = %s
+                      )
+                    ORDER BY score DESC
+                    LIMIT {limit}
+                """, (user_id,))
+                rows = cur.fetchall()
+                if rows:
+                    conn.close()
+                    ads = [{"id": r[0], "title": r[1], "price": r[2], "city": r[3],
+                            "category": r[4], "views": r[5], "image_url": r[6],
+                            "created_at": str(r[7]), "seller_name": r[8]} for r in rows]
+                    return ok({"ads": ads, "based_on": top_cats})
+
+        # Fallback — популярные за последние 7 дней
+        cur.execute(f"""
+            SELECT a.id, a.title, a.price, a.city, a.category, a.views,
+                   a.image_url, a.created_at, u.name as seller_name
+            FROM {SCHEMA}.ads a
+            JOIN {SCHEMA}.users u ON u.id = a.user_id
+            WHERE a.status = 'active'
+              AND a.created_at >= NOW() - INTERVAL '30 days'
+            ORDER BY a.views DESC
+            LIMIT {limit}
+        """)
+        rows = cur.fetchall()
+        conn.close()
+        ads = [{"id": r[0], "title": r[1], "price": r[2], "city": r[3],
+                "category": r[4], "views": r[5], "image_url": r[6],
+                "created_at": str(r[7]), "seller_name": r[8]} for r in rows]
+        return ok({"ads": ads, "based_on": []})
+
+    # --- hot_ads: популярные объявления с маркером ---
+    if action == "hot_ads":
+        limit = int(qs.get("limit") or 8)
+        conn = get_conn()
+        cur = conn.cursor()
+        # Score = просмотры за неделю * 3 + общие просмотры
+        cur.execute(f"""
+            SELECT a.id, a.title, a.price, a.city, a.category, a.views,
+                   a.image_url, a.created_at, u.name as seller_name,
+                   COALESCE(ws.week_views, 0) as week_views,
+                   (COALESCE(ws.week_views, 0) * 3 + a.views) as score
+            FROM {SCHEMA}.ads a
+            JOIN {SCHEMA}.users u ON u.id = a.user_id
+            LEFT JOIN (
+                SELECT ad_id, SUM(views_count) as week_views
+                FROM {SCHEMA}.ad_view_stats
+                WHERE stat_date >= CURRENT_DATE - INTERVAL '7 days'
+                GROUP BY ad_id
+            ) ws ON ws.ad_id = a.id
+            WHERE a.status = 'active'
+            ORDER BY score DESC
+            LIMIT {limit}
+        """)
+        rows = cur.fetchall()
+        conn.close()
+        ads = [{"id": r[0], "title": r[1], "price": r[2], "city": r[3],
+                "category": r[4], "views": r[5], "image_url": r[6],
+                "created_at": str(r[7]), "seller_name": r[8],
+                "week_views": r[9], "score": r[10], "hot": True} for r in rows]
+        return ok({"ads": ads})
+
     return err(400, "Неизвестное действие")

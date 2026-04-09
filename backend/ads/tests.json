@@ -90,6 +90,21 @@
       "expectedStatus": 401,
       "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Recommendations public",
+      "method": "GET",
+      "path": "/?action=recommendations",
+      "expectedStatus": 200,
+      "expectedBody": {"based_on": []},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Hot ads public",
+      "method": "GET",
+      "path": "/?action=hot_ads",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
     }
   ]
 }

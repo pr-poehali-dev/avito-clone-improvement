@@ -19,13 +19,19 @@ interface AdminAd {
   views: number; created_at: string; seller: string; user_id: number; category: string;
 }
 
-type Tab = "stats" | "users" | "ads";
+interface UserActivity {
+  id: number; name: string; email: string; reg_date: string;
+  ads_count: number; messages_count: number; reviews_count: number; last_active: string | null;
+}
+
+type Tab = "stats" | "users" | "ads" | "activity";
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("stats");
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [ads, setAds] = useState<AdminAd[]>([]);
+  const [activity, setActivity] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -60,9 +66,17 @@ export default function AdminPage() {
 
   useEffect(() => { loadStats(); }, []);
 
+  const loadActivity = async () => {
+    setLoading(true);
+    const data = await adminCall("user_activity");
+    if (!data.error) setActivity(data.activity || []);
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (tab === "users") loadUsers(search);
     if (tab === "ads") loadAds(search, statusFilter);
+    if (tab === "activity") loadActivity();
   }, [tab]);
 
   const handleSearch = (v: string) => {
@@ -149,7 +163,7 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 flex-wrap">
-        {([["stats", "BarChart2", "Статистика"], ["users", "Users", "Пользователи"], ["ads", "FileText", "Объявления"]] as const).map(([id, icon, label]) => (
+        {([["stats", "BarChart2", "Статистика"], ["users", "Users", "Пользователи"], ["ads", "FileText", "Объявления"], ["activity", "Activity", "Активность"]] as const).map(([id, icon, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -365,6 +379,55 @@ export default function AdminPage() {
             {ads.length === 0 && (
               <div className="text-center py-10 text-muted-foreground text-sm">Объявления не найдены</div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Activity */}
+      {tab === "activity" && !loading && (
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/50 flex items-center gap-2">
+            <Icon name="Activity" size={16} className="text-violet-600" />
+            <span className="font-semibold text-sm">История активности пользователей</span>
+            <span className="ml-auto text-xs text-muted-foreground">{activity.length} записей</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="text-left px-4 py-3">Пользователь</th>
+                  <th className="text-center px-4 py-3">Объявл.</th>
+                  <th className="text-center px-4 py-3 hidden sm:table-cell">Сообщ.</th>
+                  <th className="text-center px-4 py-3 hidden md:table-cell">Отзывы</th>
+                  <th className="text-right px-4 py-3">Последняя активность</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activity.map(a => (
+                  <tr key={a.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{a.name}</div>
+                      <div className="text-xs text-muted-foreground">{a.email}</div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`font-semibold ${a.ads_count > 0 ? "text-violet-600" : "text-muted-foreground"}`}>{a.ads_count}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center hidden sm:table-cell">
+                      <span className={`font-semibold ${a.messages_count > 0 ? "text-cyan-600" : "text-muted-foreground"}`}>{a.messages_count}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center hidden md:table-cell">
+                      <span className={`font-semibold ${a.reviews_count > 0 ? "text-amber-600" : "text-muted-foreground"}`}>{a.reviews_count}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground">
+                      {a.last_active ? new Date(a.last_active).toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}
+                    </td>
+                  </tr>
+                ))}
+                {activity.length === 0 && (
+                  <tr><td colSpan={5} className="text-center py-10 text-muted-foreground text-sm">Нет данных</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

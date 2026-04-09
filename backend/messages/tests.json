@@ -18,9 +18,9 @@
       "bodyMatcher": "partial"
     },
     {
-      "name": "Reviews list - no auth",
+      "name": "Reviews list with user_id",
       "method": "GET",
-      "path": "/?action=reviews_list",
+      "path": "/?action=reviews_list&user_id=1",
       "expectedStatus": 401,
       "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"

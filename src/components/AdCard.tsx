@@ -19,6 +19,8 @@ export interface AdCardData {
   description?: string;
   seller_name?: string;
   status?: string;
+  week_views?: number;
+  score?: number;
 }
 
 interface AdCardProps {
@@ -81,9 +83,18 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavo
           </div>
         )}
 
-        {ad.hot && !viewed && (
-          <div className="absolute top-3 left-3">
+        {(ad.hot || (ad.week_views && ad.week_views > 3)) && !viewed && (
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
             <span className="badge-hot">🔥 Горячее</span>
+          </div>
+        )}
+
+        {!ad.hot && !(ad.week_views && ad.week_views > 3) && ad.views > 50 && !viewed && (
+          <div className="absolute top-3 left-3">
+            <span className="flex items-center gap-1 bg-violet-600/90 backdrop-blur text-white text-xs font-bold px-2.5 py-1 rounded-full">
+              <Icon name="TrendingUp" size={10} />
+              Популярное
+            </span>
           </div>
         )}
 
