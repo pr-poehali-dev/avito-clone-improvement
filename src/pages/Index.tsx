@@ -30,6 +30,7 @@ export default function Index() {
   const [openAdForm, setOpenAdForm] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [globalSearch, setGlobalSearch] = useState("");
+  const [prevPage, setPrevPage] = useState("home");
 
   useEffect(() => {
     if (getToken()) {
@@ -91,6 +92,7 @@ export default function Index() {
   const handleNavigate = (page: string) => {
     // Поддержка "ad:123" и "reviews:123"
     if (page.startsWith("ad:")) {
+      setPrevPage(activePage);
       setPageParam(parseInt(page.split(":")[1]));
       setActivePage("ad");
       return;
@@ -137,7 +139,11 @@ export default function Index() {
       case "ad": return pageParam ? (
         <AdPage
           adId={pageParam}
-          onBack={() => { setActivePage("home"); setPageParam(null); }}
+          onBack={() => {
+            window.dispatchEvent(new Event("om:viewed_updated"));
+            setActivePage(prevPage || "home");
+            setPageParam(null);
+          }}
           onNavigate={handleNavigate}
           user={user}
           onAuthClick={() => setShowAuth(true)}

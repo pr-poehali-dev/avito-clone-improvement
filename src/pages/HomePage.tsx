@@ -45,12 +45,16 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
     }
   };
 
+  const refreshViewed = () => {
+    if (getToken()) getViewedIds().then(r => setViewedIds(new Set(r.ids))).catch(() => {});
+  };
+
   useEffect(() => {
     loadAds();
     getSiteStats().then(s => setSiteStats(s)).catch(() => {});
-    if (getToken()) {
-      getViewedIds().then(r => setViewedIds(new Set(r.ids))).catch(() => {});
-    }
+    refreshViewed();
+    window.addEventListener("om:viewed_updated", refreshViewed);
+    return () => window.removeEventListener("om:viewed_updated", refreshViewed);
     // Загружаем объявления по городу пользователя из профиля
     const storedCity = localStorage.getItem("om_user_city");
     if (storedCity) {

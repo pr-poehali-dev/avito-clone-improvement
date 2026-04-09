@@ -4,7 +4,7 @@ import AdCard from "@/components/AdCard";
 import SearchBar from "@/components/SearchBar";
 import AdBanner from "@/components/AdBanner";
 import { categories, subcategories } from "@/data/mockData";
-import { listAds, Ad, formatTimeAgo, ListFilters } from "@/lib/adsApi";
+import { listAds, Ad, formatTimeAgo, ListFilters, getViewedIds } from "@/lib/adsApi";
 
 interface CategoriesPageProps {
   adImages?: Record<number, string>;
@@ -19,6 +19,19 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, on
   const [ads, setAds] = useState<Ad[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [viewedIds, setViewedIds] = useState<Set<number>>(new Set());
+
+  const refreshViewed = () => getViewedIds().then(r => setViewedIds(new Set(r.ids))).catch(() => {});
+
+  useEffect(() => {
+    refreshViewed();
+    window.addEventListener("focus", refreshViewed);
+    window.addEventListener("om:viewed_updated", refreshViewed);
+    return () => {
+      window.removeEventListener("focus", refreshViewed);
+      window.removeEventListener("om:viewed_updated", refreshViewed);
+    };
+  }, []);
 
   const loadAds = async (category?: string, sub?: string, extra: ListFilters = {}) => {
     setLoading(true);
@@ -175,7 +188,7 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, on
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {ads.map((ad, i) => (
               <div key={ad.id} className={`animate-fade-in delay-${(i % 4 + 1) * 100}`}>
-                <AdCard ad={{ ...ad, date: formatTimeAgo(ad.created_at) }} onNavigate={onNavigate} />
+                <AdCard ad={{ ...ad, date: formatTimeAgo(ad.created_at) }} onNavigate={onNavigate} viewed={viewedIds.has(ad.id)} />
               </div>
             ))}
             {/* Рекламный баннер после 8+ объявлений */}
