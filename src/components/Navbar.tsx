@@ -15,6 +15,7 @@ interface NavbarProps {
   user: User | null;
   onAuthClick: () => void;
   onPostAd: () => void;
+  onSearch?: (query: string) => void;
 }
 
 const navItems = [
@@ -48,10 +49,13 @@ export default function Navbar({
   user,
   onAuthClick,
   onPostAd,
+  onSearch,
 }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [favCount, setFavCount] = useState(() => getFavoriteIds().length);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Счётчик непрочитанных сообщений
   useEffect(() => {
@@ -140,6 +144,48 @@ export default function Navbar({
               );
             })}
           </div>
+
+          {/* Global search bar (expands on click) */}
+          {searchOpen ? (
+            <form
+              className="hidden md:flex flex-1 mx-4 items-center gap-2"
+              onSubmit={e => {
+                e.preventDefault();
+                if (searchQuery.trim()) {
+                  onNavigate("categories");
+                  onSearch?.(searchQuery.trim());
+                }
+                setSearchOpen(false);
+                setSearchQuery("");
+              }}
+            >
+              <div className="relative flex-1">
+                <Icon name="Search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  autoFocus
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Поиск по объявлениям..."
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-border text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-white transition-all"
+                />
+              </div>
+              <button type="submit" className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl text-sm font-semibold hover:opacity-90">
+                Найти
+              </button>
+              <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-muted/60 text-muted-foreground">
+                <Icon name="X" size={16} />
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
+            >
+              <Icon name="Search" size={15} />
+              <span className="text-muted-foreground/60">Поиск...</span>
+            </button>
+          )}
 
           {/* Right side */}
           <div className="flex items-center gap-2">

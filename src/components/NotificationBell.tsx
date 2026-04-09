@@ -100,6 +100,7 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
                       n.type === "review" ? "bg-amber-100" :
                       n.type === "price_offer" ? "bg-violet-100" :
                       n.type === "subscription" ? "bg-indigo-100" :
+                      n.type === "alert" ? "bg-rose-100" :
                       "bg-muted"
                     }`}>
                       <Icon
@@ -110,6 +111,7 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
                           n.type === "review" ? "Star" :
                           n.type === "price_offer" ? "Tag" :
                           n.type === "subscription" ? "Bell" :
+                          n.type === "alert" ? "AlertTriangle" :
                           "Bell"
                         }
                         size={16}
@@ -120,6 +122,7 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
                           n.type === "review" ? "text-amber-500" :
                           n.type === "price_offer" ? "text-violet-600" :
                           n.type === "subscription" ? "text-indigo-600" :
+                          n.type === "alert" ? "text-rose-600" :
                           "text-muted-foreground"
                         }
                       />

@@ -800,6 +800,25 @@ def handler(event: dict, context) -> dict:
             RETURNING id
         """, (user_id, ad_id_r, target_user_id, reason, details))
         report_id = cur.fetchone()[0]
+        # Проверяем подозрительную активность: 3+ жалоб на пользователя
+        if target_user_id:
+            cur.execute(f"""
+                SELECT COUNT(*) FROM {SCHEMA}.reports
+                WHERE target_user_id = %s AND status = 'open'
+            """, (int(target_user_id),))
+            report_count = cur.fetchone()[0]
+            if report_count >= 3:
+                # Уведомляем всех администраторов
+                cur.execute(f"SELECT id FROM {SCHEMA}.users WHERE is_admin = TRUE")
+                admin_ids = [r[0] for r in cur.fetchall()]
+                cur.execute(f"SELECT name FROM {SCHEMA}.users WHERE id = %s", (int(target_user_id),))
+                target_row = cur.fetchone()
+                target_name = target_row[0] if target_row else "пользователь"
+                for admin_id in admin_ids:
+                    cur.execute(f"""
+                        INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+                        VALUES (%s, 'alert', 'Подозрительная активность', %s, %s)
+                    """, (admin_id, f'На пользователя «{target_name}» поступило уже {report_count} жалоб', ad_id_r))
         conn.commit()
         conn.close()
         return ok({"ok": True, "report_id": report_id})

@@ -2,15 +2,18 @@ import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import AdCard from "@/components/AdCard";
 import SearchBar from "@/components/SearchBar";
+import AdBanner from "@/components/AdBanner";
 import { categories, subcategories } from "@/data/mockData";
 import { listAds, Ad, formatTimeAgo, ListFilters } from "@/lib/adsApi";
 
 interface CategoriesPageProps {
   adImages?: Record<number, string>;
   onNavigate?: (page: string) => void;
+  initialSearch?: string;
+  onSearchConsumed?: () => void;
 }
 
-export default function CategoriesPage({ adImages, onNavigate }: CategoriesPageProps) {
+export default function CategoriesPage({ adImages, onNavigate, initialSearch, onSearchConsumed }: CategoriesPageProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const [ads, setAds] = useState<Ad[]>([]);
@@ -30,7 +33,14 @@ export default function CategoriesPage({ adImages, onNavigate }: CategoriesPageP
     }
   };
 
-  useEffect(() => { loadAds(); }, []);
+  useEffect(() => {
+    if (initialSearch) {
+      loadAds(undefined, undefined, { search: initialSearch });
+      onSearchConsumed?.();
+    } else {
+      loadAds();
+    }
+  }, []);
 
   const handleCategoryClick = (id: string) => {
     if (selected === id) {
@@ -168,6 +178,12 @@ export default function CategoriesPage({ adImages, onNavigate }: CategoriesPageP
                 <AdCard ad={{ ...ad, date: formatTimeAgo(ad.created_at) }} onNavigate={onNavigate} />
               </div>
             ))}
+            {/* Рекламный баннер после 8+ объявлений */}
+            {ads.length >= 8 && (
+              <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                <AdBanner variant="horizontal" slot="2" />
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-16 text-muted-foreground glass-card rounded-2xl">

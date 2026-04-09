@@ -29,6 +29,7 @@ export default function Index() {
   const [pageParam, setPageParam] = useState<number | null>(null);
   const [openAdForm, setOpenAdForm] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
+  const [globalSearch, setGlobalSearch] = useState("");
 
   useEffect(() => {
     if (getToken()) {
@@ -63,6 +64,23 @@ export default function Index() {
     setShowAuth(false);
     if (u.city) localStorage.setItem("om_user_city", u.city);
   };
+
+  // Динамический title страницы
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      home: "OMO — Маркет объявлений",
+      categories: "Категории — OMO",
+      "my-ads": "Мои объявления — OMO",
+      favorites: "Избранное — OMO",
+      messages: "Сообщения — OMO",
+      profile: "Профиль — OMO",
+      about: "О платформе — OMO",
+      admin: "Админ-панель — OMO",
+      history: "История просмотров — OMO",
+      subscriptions: "Подписки — OMO",
+    };
+    document.title = titles[activePage] || "OMO — Маркет объявлений";
+  }, [activePage]);
 
   const handlePostAd = () => {
     if (!user) { setShowAuth(true); return; }
@@ -107,7 +125,7 @@ export default function Index() {
     }
     switch (activePage) {
       case "home": return <HomePage onNavigate={handleNavigate} adImages={{}} onAuthClick={() => setShowAuth(true)} />;
-      case "categories": return <CategoriesPage onNavigate={handleNavigate} />;
+      case "categories": return <CategoriesPage onNavigate={handleNavigate} initialSearch={globalSearch} onSearchConsumed={() => setGlobalSearch("")} />;
       case "my-ads": return <MyAdsPage openForm={openAdForm} onFormOpened={() => setOpenAdForm(false)} onNavigate={handleNavigate} />;
       case "favorites": return <FavoritesPage adImages={{}} onNavigate={handleNavigate} />;
       case "messages": return <MessagesPage user={user} onAuthClick={() => setShowAuth(true)} />;
@@ -145,6 +163,7 @@ export default function Index() {
         user={user}
         onAuthClick={() => setShowAuth(true)}
         onPostAd={handlePostAd}
+        onSearch={q => { setGlobalSearch(q); handleNavigate("categories"); }}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-24 md:pb-8">

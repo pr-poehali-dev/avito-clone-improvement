@@ -44,8 +44,13 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
   useEffect(() => {
     fetch(`${ADS_URL}/?action=get&id=${adId}`)
       .then(r => r.json())
-      .then(d => { setAd(d.ad); setLoading(false); })
+      .then(d => {
+        setAd(d.ad);
+        setLoading(false);
+        if (d.ad?.title) document.title = `${d.ad.title} — OMO`;
+      })
       .catch(() => setLoading(false));
+    return () => { document.title = "OMO — Маркет объявлений"; };
   }, [adId]);
 
   const handleSendMsg = async () => {

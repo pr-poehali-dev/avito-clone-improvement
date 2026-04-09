@@ -136,6 +136,21 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavo
               {ad.views}
             </span>
             {dateLabel && <span>{dateLabel}</span>}
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                const url = `${window.location.origin}/?ad=${ad.id}`;
+                if (navigator.share) {
+                  navigator.share({ title: ad.title, url });
+                } else {
+                  navigator.clipboard.writeText(url);
+                }
+              }}
+              title="Поделиться"
+              className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-violet-600"
+            >
+              <Icon name="Share2" size={11} />
+            </button>
           </div>
         </div>
 

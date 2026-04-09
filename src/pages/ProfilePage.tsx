@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { User, updateProfile, changePassword } from "@/lib/auth";
-import { getUserStats } from "@/lib/adsApi";
+import { getUserStats, getMySubscriptions } from "@/lib/adsApi";
 
 interface ProfilePageProps {
   user: User | null;
@@ -30,10 +30,12 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
     active_ads: 0, sold_ads: 0, reviews_count: 0, avg_rating: 0, joined_at: "",
     unread_messages: 0,
   });
+  const [subsCount, setSubsCount] = useState(0);
 
   useEffect(() => {
     if (user) {
       getUserStats().then(s => setStats(s)).catch(() => {});
+      getMySubscriptions().then(r => setSubsCount(r.subscriptions.length)).catch(() => {});
     }
   }, [user]);
 
@@ -46,6 +48,7 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
     { label: "Продано", value: String(stats.sold_ads), icon: "CheckCircle", action: () => onNavigate?.("my-ads") },
     { label: "Отзывов", value: String(stats.reviews_count), icon: "Star", action: () => user && onNavigate?.(`reviews:${user.id}`) },
     { label: "Рейтинг", value: stats.avg_rating > 0 ? stats.avg_rating.toFixed(1) : "—", icon: "TrendingUp", action: () => user && onNavigate?.(`reviews:${user.id}`) },
+    { label: "Подписок", value: String(subsCount), icon: "Bell", action: () => onNavigate?.("subscriptions") },
   ];
 
   const menuItems = [
