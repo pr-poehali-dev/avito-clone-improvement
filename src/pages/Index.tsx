@@ -15,21 +15,25 @@ import AdminPage from "@/pages/AdminPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SubscriptionsPage from "@/pages/SubscriptionsPage";
 import SupportButton from "@/components/SupportButton";
+import BottomNav from "@/components/BottomNav";
+import Icon from "@/components/ui/icon";
 import { User, getMe, logout, getToken } from "@/lib/auth";
+
+const ADS_URL = "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
 
 export default function Index() {
   const [activePage, setActivePage] = useState("home");
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-  // Параметры текущей страницы
   const [pageParam, setPageParam] = useState<number | null>(null);
   const [openAdForm, setOpenAdForm] = useState(false);
+  const [unreadMsgs, setUnreadMsgs] = useState(0);
 
   useEffect(() => {
     if (getToken()) {
       getMe()
-        .then(u => setUser(u))
+        .then(u => { setUser(u); if (u?.city) localStorage.setItem("om_user_city", u.city); })
         .catch(() => {})
         .finally(() => setAuthLoading(false));
     } else {
@@ -37,9 +41,27 @@ export default function Index() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!user) { setUnreadMsgs(0); return; }
+    const fetch = async () => {
+      try {
+        const token = getToken();
+        const res = await window.fetch(`${ADS_URL}/?action=unread`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const d = await res.json();
+        setUnreadMsgs(d.count || 0);
+      } catch { /* ignore */ }
+    };
+    fetch();
+    const iv = setInterval(fetch, 30000);
+    return () => clearInterval(iv);
+  }, [user]);
+
   const handleAuthSuccess = (u: User) => {
     setUser(u);
     setShowAuth(false);
+    if (u.city) localStorage.setItem("om_user_city", u.city);
   };
 
   const handlePostAd = () => {
@@ -125,7 +147,7 @@ export default function Index() {
         onPostAd={handlePostAd}
       />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-24 md:pb-8">
         {renderPage()}
       </main>
 
@@ -137,6 +159,14 @@ export default function Index() {
       )}
 
       <SupportButton />
+
+      <BottomNav
+        activePage={activePage}
+        onNavigate={handleNavigate}
+        user={user}
+        onAuthClick={() => setShowAuth(true)}
+        unreadMsgs={unreadMsgs}
+      />
 
       {/* Footer */}
       <footer className="border-t border-border/50 mt-16 py-10">
@@ -162,14 +192,24 @@ export default function Index() {
                   <button key={l} onClick={() => handleNavigate(p)}
                     className="block text-muted-foreground hover:text-violet-600 transition-colors">{l}</button>
                 ))}
-                {["Правила", "Конфиденциальность", "Помощь"].map(l => (
-                  <button key={l} className="block text-muted-foreground hover:text-violet-600 transition-colors">{l}</button>
+                {[
+                  ["Правила", "https://poehali.dev/help"],
+                  ["Конфиденциальность", "https://poehali.dev/help"],
+                  ["Помощь", "https://poehali.dev/help"],
+                ].map(([l, href]) => (
+                  <a key={l} href={href} target="_blank" rel="noopener noreferrer"
+                    className="block text-muted-foreground hover:text-violet-600 transition-colors">{l}</a>
                 ))}
               </div>
             </div>
           </div>
-          <div className="mt-8 pt-6 border-t border-border/40 text-center text-xs text-muted-foreground">
-            © 2024–2026 OMO · Маркет объявлений. Все права защищены.
+          <div className="mt-8 pt-6 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span>© 2024–2026 OMO · Маркет объявлений. Все права защищены.</span>
+            <a href="https://t.me/+QgiLIa1gFRY4Y2Iy" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-violet-600 transition-colors">
+              <Icon name="Send" size={12} />
+              Telegram-сообщество
+            </a>
           </div>
         </div>
       </footer>

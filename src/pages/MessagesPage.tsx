@@ -11,6 +11,7 @@ interface MessagesPageProps {
 
 export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
   const [dialogs, setDialogs] = useState<Dialog[]>([]);
+  const [dialogSearch, setDialogSearch] = useState("");
   const [selected, setSelected] = useState<Dialog | null>(null);
   const [thread, setThread] = useState<Message[]>([]);
   const [newMsg, setNewMsg] = useState("");
@@ -95,8 +96,17 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
       <div className="flex gap-4 h-[600px]">
         {/* Dialog list */}
         <div className={`${selected ? "hidden lg:flex" : "flex"} flex-col w-full lg:w-80 shrink-0 glass-card rounded-2xl overflow-hidden`}>
-          <div className="p-4 border-b border-border">
-            <p className="text-sm font-semibold text-muted-foreground">Диалоги</p>
+          <div className="p-3 border-b border-border">
+            <div className="relative">
+              <Icon name="Search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={dialogSearch}
+                onChange={e => setDialogSearch(e.target.value)}
+                placeholder="Поиск диалогов..."
+                className="w-full bg-muted/50 rounded-xl pl-8 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-200 transition-all"
+              />
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto">
             {loading ? (
@@ -110,7 +120,9 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
                 <p className="text-xs mt-1">Напишите продавцу из объявления</p>
               </div>
             ) : (
-              dialogs.map((d) => (
+              dialogs
+              .filter(d => !dialogSearch || d.other_name.toLowerCase().includes(dialogSearch.toLowerCase()) || (d.ad_title || "").toLowerCase().includes(dialogSearch.toLowerCase()))
+              .map((d) => (
                 <button
                   key={d.other_user_id}
                   onClick={() => loadThread(d)}

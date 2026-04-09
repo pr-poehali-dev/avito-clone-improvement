@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import AdCard from "@/components/AdCard";
 import Icon from "@/components/ui/icon";
 import { getFavoriteIds, subscribeFavorites } from "@/lib/favorites";
-import { listAds, Ad } from "@/lib/adsApi";
+import { listAds, getViewedIds, Ad } from "@/lib/adsApi";
+import { getToken } from "@/lib/auth";
 
 interface FavoritesPageProps {
   adImages?: Record<number, string>;
@@ -12,6 +13,7 @@ interface FavoritesPageProps {
 export default function FavoritesPage({ onNavigate }: FavoritesPageProps) {
   const [favoriteAds, setFavoriteAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewedIds, setViewedIds] = useState<Set<number>>(new Set());
 
   const load = async () => {
     setLoading(true);
@@ -21,7 +23,6 @@ export default function FavoritesPage({ onNavigate }: FavoritesPageProps) {
       setLoading(false);
       return;
     }
-    // Загружаем все объявления и фильтруем по ID из localStorage
     try {
       const res = await listAds({ limit: 100 });
       const map = new Map(res.ads.map(a => [a.id, a]));
@@ -36,8 +37,10 @@ export default function FavoritesPage({ onNavigate }: FavoritesPageProps) {
 
   useEffect(() => {
     load();
-    // Перезагружаем при изменении избранного
     const unsub = subscribeFavorites(load);
+    if (getToken()) {
+      getViewedIds().then(r => setViewedIds(new Set(r.ids))).catch(() => {});
+    }
     return unsub;
   }, []);
 
@@ -72,6 +75,7 @@ export default function FavoritesPage({ onNavigate }: FavoritesPageProps) {
                 ad={ad}
                 onNavigate={onNavigate}
                 onFavoriteChange={load}
+                viewed={viewedIds.has(ad.id)}
               />
             </div>
           ))}

@@ -291,7 +291,8 @@ def handler(event: dict, context) -> dict:
             SELECT a.id, a.title, a.description, a.price, a.city, a.category,
                    a.views, a.image_url, a.created_at, a.status,
                    u.id as user_id, u.name as seller_name,
-                   a.subcategory, a.condition, a.quantity
+                   a.subcategory, a.condition, a.quantity,
+                   u.phone as seller_phone
             FROM {SCHEMA}.ads a
             JOIN {SCHEMA}.users u ON u.id = a.user_id
             WHERE a.id = %s
@@ -334,6 +335,7 @@ def handler(event: dict, context) -> dict:
             "views": row[6] + 1, "image_url": row[7], "created_at": str(row[8]),
             "status": row[9], "user_id": row[10], "seller_name": row[11],
             "subcategory": row[12], "condition": row[13], "quantity": row[14],
+            "seller_phone": row[15],
             "media": media if media else ([{"url": row[7], "type": "photo"}] if row[7] else []),
         }
         return ok({"ad": ad})

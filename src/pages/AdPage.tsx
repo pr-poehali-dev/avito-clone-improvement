@@ -20,6 +20,7 @@ interface AdFull {
   subcategory?: string | null;
   condition?: string | null;
   quantity?: number;
+  seller_phone?: string | null;
 }
 
 interface AdPageProps {
@@ -34,6 +35,7 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
   const [ad, setAd] = useState<AdFull | null>(null);
   const [loading, setLoading] = useState(true);
   const [showMsgForm, setShowMsgForm] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [msgSent, setMsgSent] = useState(false);
   const [msgError, setMsgError] = useState("");
@@ -214,10 +216,25 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
                     Написать сообщение
                   </button>
                 )}
-                <button className="w-full py-2.5 border border-border rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted/60 transition-colors flex items-center justify-center gap-2">
-                  <Icon name="Phone" size={15} />
-                  Показать номер
-                </button>
+                {ad.seller_phone ? (
+                  showPhone ? (
+                    <a
+                      href={`tel:${ad.seller_phone}`}
+                      className="w-full py-2.5 border border-emerald-300 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Icon name="Phone" size={15} />
+                      {ad.seller_phone}
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => user ? setShowPhone(true) : onAuthClick()}
+                      className="w-full py-2.5 border border-border rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted/60 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Icon name="Phone" size={15} />
+                      Показать номер
+                    </button>
+                  )
+                ) : null}
                 <PriceOfferForm
                   adId={ad.id}
                   adPrice={ad.price}

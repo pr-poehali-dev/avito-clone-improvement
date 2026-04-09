@@ -22,6 +22,8 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
   const [filters, setFilters] = useState<ListFilters>({});
   const [siteStats, setSiteStats] = useState<{ total_users: number; total_cities: number; total_deals: number } | null>(null);
   const [viewedIds, setViewedIds] = useState<Set<number>>(new Set());
+  const [cityAds, setCityAds] = useState<Ad[]>([]);
+  const [userCity, setUserCity] = useState<string | null>(null);
 
   const stats = [
     { label: "Объявлений", icon: "FileText", color: "text-violet-600", value: total.toLocaleString("ru-RU") },
@@ -48,6 +50,12 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
     getSiteStats().then(s => setSiteStats(s)).catch(() => {});
     if (getToken()) {
       getViewedIds().then(r => setViewedIds(new Set(r.ids))).catch(() => {});
+    }
+    // Загружаем объявления по городу пользователя из профиля
+    const storedCity = localStorage.getItem("om_user_city");
+    if (storedCity) {
+      setUserCity(storedCity);
+      listAds({ city: storedCity, limit: 4 }).then(r => setCityAds(r.ads)).catch(() => {});
     }
   }, []);
 
@@ -171,6 +179,31 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
           </div>
         )}
       </section>
+
+      {/* Объявления в городе пользователя */}
+      {userCity && cityAds.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-display text-2xl font-bold flex items-center gap-2">
+              <Icon name="MapPin" size={20} className="text-pink-500" />
+              В городе {userCity}
+            </h2>
+            <button
+              onClick={() => { setFilters({ city: userCity }); loadAds({ city: userCity }); }}
+              className="flex items-center gap-1 text-sm text-violet-600 font-semibold hover:opacity-70 transition-opacity"
+            >
+              Все <Icon name="ChevronRight" size={15} />
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {cityAds.map((ad, i) => (
+              <div key={ad.id} className={`animate-fade-in delay-${(i % 4 + 1) * 100}`}>
+                <AdCard ad={ad} onNavigate={onNavigate} viewed={viewedIds.has(ad.id)} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Рекламный баннер #1 */}
       <AdBanner variant="horizontal" slot="0" />
