@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import Logo from "@/components/Logo";
 import { User } from "@/lib/auth";
 import { getFavoriteIds, subscribeFavorites } from "@/lib/favorites";
 import { getToken } from "@/lib/auth";
 import NotificationBell from "@/components/NotificationBell";
+import CitySelect from "@/components/CitySelect";
+import { categories } from "@/data/mockData";
 
 const ADS_URL =
   "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
@@ -15,7 +17,7 @@ interface NavbarProps {
   user: User | null;
   onAuthClick: () => void;
   onPostAd: () => void;
-  onSearch?: (query: string) => void;
+  onSearch?: (query: string, filters?: { city: string; category: string; minPrice: string; maxPrice: string }) => void;
 }
 
 const navItems = [
@@ -56,6 +58,40 @@ export default function Navbar({
   const [favCount, setFavCount] = useState(() => getFavoriteIds().length);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchCity, setSearchCity] = useState("Все города");
+  const [searchCategory, setSearchCategory] = useState("");
+  const [searchMinPrice, setSearchMinPrice] = useState("");
+  const [searchMaxPrice, setSearchMaxPrice] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const searchPanelRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Закрытие панели поиска при клике вне
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (searchPanelRef.current && !searchPanelRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+        setShowFilters(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [searchOpen]);
+
+  // Ctrl+K / Cmd+K открывает поиск
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+        setTimeout(() => searchInputRef.current?.focus(), 50);
+      }
+      if (e.key === "Escape") { setSearchOpen(false); setShowFilters(false); }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   // Счётчик непрочитанных сообщений
   useEffect(() => {
@@ -145,47 +181,15 @@ export default function Navbar({
             })}
           </div>
 
-          {/* Global search bar (expands on click) */}
-          {searchOpen ? (
-            <form
-              className="hidden md:flex flex-1 mx-4 items-center gap-2"
-              onSubmit={e => {
-                e.preventDefault();
-                if (searchQuery.trim()) {
-                  onNavigate("categories");
-                  onSearch?.(searchQuery.trim());
-                }
-                setSearchOpen(false);
-                setSearchQuery("");
-              }}
-            >
-              <div className="relative flex-1">
-                <Icon name="Search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  autoFocus
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Поиск по объявлениям..."
-                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-border text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-white transition-all"
-                />
-              </div>
-              <button type="submit" className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl text-sm font-semibold hover:opacity-90">
-                Найти
-              </button>
-              <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-muted/60 text-muted-foreground">
-                <Icon name="X" size={16} />
-              </button>
-            </form>
-          ) : (
-            <button
-              onClick={() => setSearchOpen(true)}
-              className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
-            >
-              <Icon name="Search" size={15} />
-              <span className="text-muted-foreground/60">Поиск...</span>
-            </button>
-          )}
+          {/* Search trigger button */}
+          <button
+            onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}
+            className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent hover:border-border"
+          >
+            <Icon name="Search" size={15} />
+            <span className="text-muted-foreground/50 min-w-32">Поиск по объявлениям...</span>
+            <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-muted rounded text-[10px] text-muted-foreground/70 font-mono">⌘K</kbd>
+          </button>
 
           {/* Right side */}
           <div className="flex items-center gap-2">
@@ -232,6 +236,115 @@ export default function Navbar({
           </div>
         </div>
       </div>
+
+      {/* Search panel (desktop dropdown) */}
+      {searchOpen && (
+        <div
+          ref={searchPanelRef}
+          className="hidden md:block absolute left-0 right-0 top-full z-50 bg-white border-b border-border shadow-xl animate-fade-in"
+        >
+          <div className="max-w-4xl mx-auto px-6 py-4">
+            {/* Main row */}
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                onNavigate("categories");
+                onSearch?.(searchQuery, { city: searchCity, category: searchCategory, minPrice: searchMinPrice, maxPrice: searchMaxPrice });
+                setSearchOpen(false);
+                setShowFilters(false);
+              }}
+            >
+              <div className="flex gap-2 bg-muted/40 rounded-2xl border border-border p-2">
+                <div className="flex items-center gap-2 px-3 border-r border-border text-sm text-muted-foreground shrink-0">
+                  <Icon name="MapPin" size={15} className="text-violet-500 shrink-0" />
+                  <CitySelect value={searchCity} onChange={setSearchCity} compact />
+                </div>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Что ищете? Телефон, машина, квартира..."
+                  className="flex-1 outline-none bg-transparent text-sm placeholder:text-muted-foreground"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${showFilters ? "bg-violet-100 text-violet-700" : "text-muted-foreground hover:bg-muted/60"}`}
+                >
+                  <Icon name="SlidersHorizontal" size={14} />
+                  Фильтры
+                  {(searchCategory || searchMinPrice || searchMaxPrice) && (
+                    <span className="w-1.5 h-1.5 bg-violet-500 rounded-full" />
+                  )}
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity shadow-md whitespace-nowrap"
+                >
+                  <Icon name="Search" size={15} />
+                  Найти
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setSearchOpen(false); setShowFilters(false); }}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-muted/60 text-muted-foreground"
+                >
+                  <Icon name="X" size={16} />
+                </button>
+              </div>
+
+              {/* Filters */}
+              {showFilters && (
+                <div className="mt-3 p-4 bg-muted/30 rounded-2xl border border-border animate-fade-in">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Категория</label>
+                      <select
+                        value={searchCategory}
+                        onChange={e => setSearchCategory(e.target.value)}
+                        className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-violet-400 transition-colors"
+                      >
+                        <option value="">Все категории</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Цена от, ₽</label>
+                      <input
+                        type="number"
+                        value={searchMinPrice}
+                        onChange={e => setSearchMinPrice(e.target.value)}
+                        placeholder="0"
+                        className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-violet-400 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Цена до, ₽</label>
+                      <input
+                        type="number"
+                        value={searchMaxPrice}
+                        onChange={e => setSearchMaxPrice(e.target.value)}
+                        placeholder="Любая"
+                        className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-violet-400 transition-colors"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-3">
+                    <button
+                      type="button"
+                      onClick={() => { setSearchCategory(""); setSearchMinPrice(""); setSearchMaxPrice(""); setSearchCity("Все города"); }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Сбросить фильтры
+                    </button>
+                  </div>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Mobile menu */}
       {mobileOpen && (

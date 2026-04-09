@@ -90,7 +90,7 @@ def handler(event: dict, context) -> dict:
         cur = conn.cursor()
         cur.execute(f"""
             SELECT a.id, a.title, a.price, a.city, a.category, a.views,
-                   a.image_url, a.created_at, u.name as seller_name
+                   a.image_url, a.created_at, u.name as seller_name, u.avatar_url as seller_avatar
             FROM {SCHEMA}.ads a
             JOIN {SCHEMA}.users u ON u.id = a.user_id
             WHERE {where_sql}
@@ -108,7 +108,7 @@ def handler(event: dict, context) -> dict:
             ads.append({
                 "id": r[0], "title": r[1], "price": r[2], "city": r[3],
                 "category": r[4], "views": r[5], "image_url": r[6],
-                "created_at": str(r[7]), "seller_name": r[8],
+                "created_at": str(r[7]), "seller_name": r[8], "seller_avatar": r[9],
             })
         return ok({"ads": ads, "total": total})
 
@@ -292,7 +292,7 @@ def handler(event: dict, context) -> dict:
                    a.views, a.image_url, a.created_at, a.status,
                    u.id as user_id, u.name as seller_name,
                    a.subcategory, a.condition, a.quantity,
-                   u.phone as seller_phone
+                   u.phone as seller_phone, u.avatar_url as seller_avatar
             FROM {SCHEMA}.ads a
             JOIN {SCHEMA}.users u ON u.id = a.user_id
             WHERE a.id = %s
@@ -335,7 +335,7 @@ def handler(event: dict, context) -> dict:
             "views": row[6] + 1, "image_url": row[7], "created_at": str(row[8]),
             "status": row[9], "user_id": row[10], "seller_name": row[11],
             "subcategory": row[12], "condition": row[13], "quantity": row[14],
-            "seller_phone": row[15],
+            "seller_phone": row[15], "seller_avatar": row[16],
             "media": media if media else ([{"url": row[7], "type": "photo"}] if row[7] else []),
         }
         return ok({"ad": ad})

@@ -10,10 +10,11 @@ interface CategoriesPageProps {
   adImages?: Record<number, string>;
   onNavigate?: (page: string) => void;
   initialSearch?: string;
+  initialFilters?: { city: string; category: string; minPrice: string; maxPrice: string };
   onSearchConsumed?: () => void;
 }
 
-export default function CategoriesPage({ adImages, onNavigate, initialSearch, onSearchConsumed }: CategoriesPageProps) {
+export default function CategoriesPage({ adImages, onNavigate, initialSearch, initialFilters, onSearchConsumed }: CategoriesPageProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
   const [ads, setAds] = useState<Ad[]>([]);
@@ -47,8 +48,14 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, on
   };
 
   useEffect(() => {
-    if (initialSearch) {
-      loadAds(undefined, undefined, { search: initialSearch });
+    if (initialSearch || initialFilters) {
+      const extra: ListFilters = {};
+      if (initialSearch) extra.search = initialSearch;
+      if (initialFilters?.city && initialFilters.city !== "Все города") extra.city = initialFilters.city;
+      if (initialFilters?.category) { setSelected(initialFilters.category); extra.category = initialFilters.category; }
+      if (initialFilters?.minPrice) extra.min_price = initialFilters.minPrice;
+      if (initialFilters?.maxPrice) extra.max_price = initialFilters.maxPrice;
+      loadAds(initialFilters?.category || undefined, undefined, extra);
       onSearchConsumed?.();
     } else {
       loadAds();

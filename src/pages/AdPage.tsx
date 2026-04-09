@@ -148,8 +148,11 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
               className="flex items-center gap-3 p-3 bg-muted/40 rounded-xl cursor-pointer hover:bg-muted/60 transition-colors"
               onClick={() => onNavigate(`reviews:${ad.user_id}`)}
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
-                <span className="text-white font-bold text-sm">{ad.seller_name.charAt(0).toUpperCase()}</span>
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
+                {ad.seller_avatar
+                  ? <img src={ad.seller_avatar} alt={ad.seller_name} className="w-full h-full object-cover" />
+                  : <span className="text-white font-bold text-sm">{ad.seller_name.charAt(0).toUpperCase()}</span>
+                }
               </div>
               <div>
                 <div className="font-semibold text-sm">{ad.seller_name}</div>

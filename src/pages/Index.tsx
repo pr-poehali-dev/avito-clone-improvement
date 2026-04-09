@@ -30,6 +30,7 @@ export default function Index() {
   const [openAdForm, setOpenAdForm] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
   const [globalSearch, setGlobalSearch] = useState("");
+  const [globalFilters, setGlobalFilters] = useState<{ city: string; category: string; minPrice: string; maxPrice: string } | undefined>();
   const [prevPage, setPrevPage] = useState("home");
 
   useEffect(() => {
@@ -127,7 +128,7 @@ export default function Index() {
     }
     switch (activePage) {
       case "home": return <HomePage onNavigate={handleNavigate} adImages={{}} onAuthClick={() => setShowAuth(true)} />;
-      case "categories": return <CategoriesPage onNavigate={handleNavigate} initialSearch={globalSearch} onSearchConsumed={() => setGlobalSearch("")} />;
+      case "categories": return <CategoriesPage onNavigate={handleNavigate} initialSearch={globalSearch} initialFilters={globalFilters} onSearchConsumed={() => { setGlobalSearch(""); setGlobalFilters(undefined); }} />;
       case "my-ads": return <MyAdsPage openForm={openAdForm} onFormOpened={() => setOpenAdForm(false)} onNavigate={handleNavigate} />;
       case "favorites": return <FavoritesPage adImages={{}} onNavigate={handleNavigate} />;
       case "messages": return <MessagesPage user={user} onAuthClick={() => setShowAuth(true)} />;
@@ -169,7 +170,7 @@ export default function Index() {
         user={user}
         onAuthClick={() => setShowAuth(true)}
         onPostAd={handlePostAd}
-        onSearch={q => { setGlobalSearch(q); handleNavigate("categories"); }}
+        onSearch={(q, f) => { setGlobalSearch(q); setGlobalFilters(f); handleNavigate("categories"); }}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-24 md:pb-8">

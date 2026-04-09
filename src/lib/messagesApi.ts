@@ -25,6 +25,7 @@ async function call(action: string, params: Record<string, string> = {}, body?: 
 export interface Dialog {
   other_user_id: number;
   other_name: string;
+  other_avatar?: string | null;
   last_message: string;
   last_time: string;
   is_mine: boolean;
@@ -48,7 +49,7 @@ export const getInbox = () => call("inbox") as Promise<{ dialogs: Dialog[] }>;
 export const getThread = (other_id: number) =>
   call("thread", { other_id: String(other_id) }) as Promise<{
     messages: Message[];
-    other: { id: number; name: string } | null;
+    other: { id: number; name: string; avatar_url?: string | null } | null;
   }>;
 
 export const sendMessage = (receiver_id: number, text: string, ad_id?: number) =>

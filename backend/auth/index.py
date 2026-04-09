@@ -61,8 +61,9 @@ def handler(event: dict, context) -> dict:
         email = (body.get("email") or "").strip().lower()
         password = body.get("password") or ""
         city = (body.get("city") or "").strip()
+        phone = (body.get("phone") or "").strip()
 
-        if not name or not email or not password:
+        if not name or not email or not password or not phone:
             return err(400, "Заполните все обязательные поля")
         if len(password) < 6:
             return err(400, "Пароль должен быть не менее 6 символов")
@@ -76,8 +77,8 @@ def handler(event: dict, context) -> dict:
 
         pwd_hash = hash_password(password)
         cur.execute(
-            f"INSERT INTO {SCHEMA}.users (name, email, password_hash, city) VALUES (%s, %s, %s, %s) RETURNING id, name, email, city",
-            (name, email, pwd_hash, city)
+            f"INSERT INTO {SCHEMA}.users (name, email, password_hash, city, phone) VALUES (%s, %s, %s, %s, %s) RETURNING id, name, email, city, phone",
+            (name, email, pwd_hash, city or None, phone)
         )
         row = cur.fetchone()
         user_id = row[0]
@@ -91,7 +92,7 @@ def handler(event: dict, context) -> dict:
         conn.commit()
         conn.close()
 
-        return ok({"token": token_val, "user": {"id": row[0], "name": row[1], "email": row[2], "city": row[3]}})
+        return ok({"token": token_val, "user": {"id": row[0], "name": row[1], "email": row[2], "city": row[3], "phone": row[4], "avatar_url": None}})
 
     # --- login ---
     if action == "login":

@@ -111,7 +111,7 @@ def handler(event: dict, context) -> dict:
                 CASE WHEN m.sender_id = %s THEN m.receiver_id ELSE m.sender_id END as other_user,
                 m.id, m.text, m.created_at, m.is_read, m.sender_id,
                 m.ad_id, a.title as ad_title,
-                u.name as other_name
+                u.name as other_name, u.avatar_url as other_avatar
             FROM {SCHEMA}.messages m
             LEFT JOIN {SCHEMA}.ads a ON a.id = m.ad_id
             JOIN {SCHEMA}.users u ON u.id = CASE WHEN m.sender_id = %s THEN m.receiver_id ELSE m.sender_id END
@@ -135,6 +135,7 @@ def handler(event: dict, context) -> dict:
             dialogs.append({
                 "other_user_id": other_id,
                 "other_name": r[8],
+                "other_avatar": r[9],
                 "last_message": r[2],
                 "last_time": str(r[3]),
                 "is_read": r[4],
@@ -173,7 +174,7 @@ def handler(event: dict, context) -> dict:
         conn.commit()
 
         # Инфо о собеседнике
-        cur.execute(f"SELECT id, name FROM {SCHEMA}.users WHERE id = %s", (other_id,))
+        cur.execute(f"SELECT id, name, avatar_url FROM {SCHEMA}.users WHERE id = %s", (other_id,))
         other = cur.fetchone()
         conn.close()
 
@@ -186,7 +187,7 @@ def handler(event: dict, context) -> dict:
             })
         return ok({
             "messages": thread,
-            "other": {"id": other[0], "name": other[1]} if other else None,
+            "other": {"id": other[0], "name": other[1], "avatar_url": other[2]} if other else None,
         })
 
     # --- mark_read ---

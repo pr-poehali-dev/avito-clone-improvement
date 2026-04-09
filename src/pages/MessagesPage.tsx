@@ -4,6 +4,18 @@ import { getInbox, getThread, sendMessage, Dialog, Message } from "@/lib/message
 import { User } from "@/lib/auth";
 import { formatTimeAgo } from "@/lib/adsApi";
 
+function UserAvatar({ name, avatarUrl, size = 11 }: { name: string; avatarUrl?: string | null; size?: number }) {
+  const cls = `w-${size} h-${size} rounded-full shrink-0 overflow-hidden bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center`;
+  return (
+    <div className={cls}>
+      {avatarUrl
+        ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+        : <span className="text-white font-bold text-sm">{name.charAt(0).toUpperCase()}</span>
+      }
+    </div>
+  );
+}
+
 interface MessagesPageProps {
   user: User | null;
   onAuthClick: () => void;
@@ -14,6 +26,7 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
   const [dialogSearch, setDialogSearch] = useState("");
   const [selected, setSelected] = useState<Dialog | null>(null);
   const [thread, setThread] = useState<Message[]>([]);
+  const [otherAvatar, setOtherAvatar] = useState<string | null>(null);
   const [newMsg, setNewMsg] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -35,6 +48,7 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
     try {
       const res = await getThread(dialog.other_user_id);
       setThread(res.messages);
+      setOtherAvatar(res.other?.avatar_url || dialog.other_avatar || null);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch {
       setThread([]);
@@ -130,9 +144,7 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
                     selected?.other_user_id === d.other_user_id ? "bg-violet-50" : ""
                   }`}
                 >
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shrink-0">
-                    <span className="text-white font-bold text-sm">{d.other_name.charAt(0).toUpperCase()}</span>
-                  </div>
+                  <UserAvatar name={d.other_name} avatarUrl={d.other_avatar} size={11} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-sm truncate">{d.other_name}</span>
@@ -161,9 +173,7 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
               <button onClick={() => setSelected(null)} className="lg:hidden mr-1 text-muted-foreground hover:text-foreground">
                 <Icon name="ChevronLeft" size={20} />
               </button>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">{selected.other_name.charAt(0).toUpperCase()}</span>
-              </div>
+              <UserAvatar name={selected.other_name} avatarUrl={otherAvatar} size={10} />
               <div>
                 <div className="font-semibold">{selected.other_name}</div>
                 {selected.ad_title && <div className="text-xs text-muted-foreground">Объявление: {selected.ad_title}</div>}

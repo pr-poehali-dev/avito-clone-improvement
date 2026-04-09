@@ -36,8 +36,8 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
-export async function register(name: string, email: string, password: string, city: string): Promise<{ token: string; user: User }> {
-  return call("register", { name, email, password, city });
+export async function register(name: string, email: string, password: string, city: string, phone: string): Promise<{ token: string; user: User }> {
+  return call("register", { name, email, password, city, phone });
 }
 
 export async function login(email: string, password: string): Promise<{ token: string; user: User }> {

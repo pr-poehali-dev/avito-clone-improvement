@@ -12,7 +12,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", password: "", city: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", city: "", phone: "" });
 
   const set = (k: string, v: string) => { setForm(f => ({ ...f, [k]: v })); setError(""); };
 
@@ -24,7 +24,7 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
       if (mode === "login") {
         return await login(form.email, form.password);
       } else {
-        return await register(form.name, form.email, form.password, form.city);
+        return await register(form.name, form.email, form.password, form.city, form.phone);
       }
     };
 
@@ -99,20 +99,36 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "register" && (
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Имя *</label>
-                <div className="relative">
-                  <Icon name="User" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={e => set("name", e.target.value)}
-                    placeholder="Ваше имя"
-                    required
-                    className="w-full border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all bg-white"
-                  />
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Имя *</label>
+                  <div className="relative">
+                    <Icon name="User" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={form.name}
+                      onChange={e => set("name", e.target.value)}
+                      placeholder="Ваше имя"
+                      required
+                      className="w-full border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all bg-white"
+                    />
+                  </div>
                 </div>
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Телефон *</label>
+                  <div className="relative">
+                    <Icon name="Phone" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      type="tel"
+                      value={form.phone}
+                      onChange={e => set("phone", e.target.value)}
+                      placeholder="+7 (999) 000-00-00"
+                      required
+                      className="w-full border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all bg-white"
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div>

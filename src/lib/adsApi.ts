@@ -12,6 +12,7 @@ export interface Ad {
   image_url: string | null;
   created_at: string;
   seller_name?: string;
+  seller_avatar?: string | null;
   status?: string;
   moderation_comment?: string | null;
   sold_on_omo?: boolean;
@@ -93,6 +94,7 @@ export interface AdFull {
   condition?: string | null;
   quantity?: number;
   seller_phone?: string | null;
+  seller_avatar?: string | null;
 }
 
 export async function deleteAd(id: number): Promise<void> {
