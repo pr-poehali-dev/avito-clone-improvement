@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { formatPrice } from "@/components/AdCard";
-import { formatTimeAgo } from "@/lib/adsApi";
+import { formatTimeAgo, getAd, AdFull as AdFullType } from "@/lib/adsApi";
 import { sendMessage } from "@/lib/messagesApi";
 import { User } from "@/lib/auth";
 import MediaGallery from "@/components/MediaGallery";
@@ -10,18 +10,7 @@ import ViewStatsChart from "@/components/ads/ViewStatsChart";
 import PriceOfferForm from "@/components/ads/PriceOfferForm";
 import ReportButton from "@/components/ads/ReportButton";
 
-const ADS_URL = "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
-
-interface AdFull {
-  id: number; title: string; description: string; price: number;
-  city: string; category: string; views: number; image_url: string | null;
-  created_at: string; status: string; user_id: number; seller_name: string;
-  media: Array<{ url: string; type: string }>;
-  subcategory?: string | null;
-  condition?: string | null;
-  quantity?: number;
-  seller_phone?: string | null;
-}
+type AdFull = AdFullType;
 
 interface AdPageProps {
   adId: number;
@@ -42,8 +31,7 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
   const [msgSending, setMsgSending] = useState(false);
 
   useEffect(() => {
-    fetch(`${ADS_URL}/?action=get&id=${adId}`)
-      .then(r => r.json())
+    getAd(adId)
       .then(d => {
         setAd(d.ad);
         setLoading(false);

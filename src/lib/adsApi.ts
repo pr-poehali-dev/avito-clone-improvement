@@ -80,6 +80,21 @@ export async function createAd(data: {
   return call("create", {}, data);
 }
 
+export async function getAd(id: number): Promise<{ ad: AdFull }> {
+  return call("get", { id: String(id) });
+}
+
+export interface AdFull {
+  id: number; title: string; description: string; price: number;
+  city: string; category: string; views: number; image_url: string | null;
+  created_at: string; status: string; user_id: number; seller_name: string;
+  media: Array<{ url: string; type: string }>;
+  subcategory?: string | null;
+  condition?: string | null;
+  quantity?: number;
+  seller_phone?: string | null;
+}
+
 export async function deleteAd(id: number): Promise<void> {
   await call("delete", {}, { id });
 }
