@@ -94,12 +94,34 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
                 >
                   <div className="flex items-start gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                      n.type === "approved" ? "bg-emerald-100" : "bg-rose-100"
+                      n.type === "approved" ? "bg-emerald-100" :
+                      n.type === "rejected" ? "bg-rose-100" :
+                      n.type === "message" ? "bg-cyan-100" :
+                      n.type === "review" ? "bg-amber-100" :
+                      n.type === "price_offer" ? "bg-violet-100" :
+                      n.type === "subscription" ? "bg-indigo-100" :
+                      "bg-muted"
                     }`}>
                       <Icon
-                        name={n.type === "approved" ? "CheckCircle" : "XCircle"}
+                        name={
+                          n.type === "approved" ? "CheckCircle" :
+                          n.type === "rejected" ? "XCircle" :
+                          n.type === "message" ? "MessageCircle" :
+                          n.type === "review" ? "Star" :
+                          n.type === "price_offer" ? "Tag" :
+                          n.type === "subscription" ? "Bell" :
+                          "Bell"
+                        }
                         size={16}
-                        className={n.type === "approved" ? "text-emerald-600" : "text-rose-500"}
+                        className={
+                          n.type === "approved" ? "text-emerald-600" :
+                          n.type === "rejected" ? "text-rose-500" :
+                          n.type === "message" ? "text-cyan-600" :
+                          n.type === "review" ? "text-amber-500" :
+                          n.type === "price_offer" ? "text-violet-600" :
+                          n.type === "subscription" ? "text-indigo-600" :
+                          "text-muted-foreground"
+                        }
                       />
                     </div>
                     <div className="flex-1 min-w-0">

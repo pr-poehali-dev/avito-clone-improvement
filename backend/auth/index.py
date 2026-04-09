@@ -190,4 +190,40 @@ def handler(event: dict, context) -> dict:
             conn.close()
         return ok({"ok": True})
 
+    # --- change_password: смена пароля ---
+    if action == "change_password":
+        if not token:
+            return err(401, "Не авторизован")
+        current_password = (body.get("current_password") or "").strip()
+        new_password = (body.get("new_password") or "").strip()
+        if not current_password or not new_password:
+            return err(400, "Укажите текущий и новый пароль")
+        if len(new_password) < 6:
+            return err(400, "Новый пароль должен быть не менее 6 символов")
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT user_id FROM {SCHEMA}.sessions WHERE token = %s AND expires_at > NOW()",
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return err(401, "Сессия истекла")
+        user_id = row[0]
+        cur.execute(f"SELECT password_hash FROM {SCHEMA}.users WHERE id = %s", (user_id,))
+        user_row = cur.fetchone()
+        if not user_row:
+            conn.close()
+            return err(404, "Пользователь не найден")
+        current_hash = hashlib.sha256(current_password.encode()).hexdigest()
+        if user_row[0] != current_hash:
+            conn.close()
+            return err(400, "Текущий пароль неверный")
+        new_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        cur.execute(f"UPDATE {SCHEMA}.users SET password_hash = %s WHERE id = %s", (new_hash, user_id))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
     return err(400, "Неизвестное действие. Укажите action: register | login | me | logout")

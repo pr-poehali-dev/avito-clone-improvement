@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
-import { User, updateProfile } from "@/lib/auth";
+import { User, updateProfile, changePassword } from "@/lib/auth";
 import { getUserStats } from "@/lib/adsApi";
 
 interface ProfilePageProps {
@@ -14,6 +14,11 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveOk, setSaveOk] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwError, setPwError] = useState("");
+  const [pwOk, setPwOk] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
   const [profile, setProfile] = useState({
     name: user?.name || "Пользователь",
     email: user?.email || "",
@@ -81,16 +86,16 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
     },
     {
       icon: "Bell",
-      label: "Уведомления",
-      desc: "Push-уведомления и email",
-      action: undefined,
+      label: "Подписки",
+      desc: "Уведомления о новых объявлениях",
+      action: () => onNavigate?.("subscriptions"),
       color: "bg-indigo-100 text-indigo-600",
     },
     {
       icon: "Shield",
       label: "Безопасность",
-      desc: "Пароль и двухфакторная аутентификация",
-      action: undefined,
+      desc: "Смена пароля",
+      action: () => setShowPasswordForm(true),
       color: "bg-emerald-100 text-emerald-600",
     },
     {
@@ -264,6 +269,85 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
         <Icon name="LogOut" size={16} />
         Выйти из аккаунта
       </button>
+
+      {/* Password change modal */}
+      {showPasswordForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowPasswordForm(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center">
+                <Icon name="Shield" size={18} className="text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base">Смена пароля</h3>
+                <p className="text-xs text-muted-foreground">Минимум 6 символов</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                { key: "current", label: "Текущий пароль", placeholder: "Введите текущий пароль" },
+                { key: "next", label: "Новый пароль", placeholder: "Минимум 6 символов" },
+                { key: "confirm", label: "Повторите новый пароль", placeholder: "Повторите пароль" },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">{f.label}</label>
+                  <input
+                    type="password"
+                    value={pwForm[f.key as keyof typeof pwForm]}
+                    onChange={e => { setPwForm(p => ({ ...p, [f.key]: e.target.value })); setPwError(""); }}
+                    placeholder={f.placeholder}
+                    className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-white"
+                  />
+                </div>
+              ))}
+
+              {pwError && (
+                <div className="flex items-center gap-1.5 text-sm text-rose-600 bg-rose-50 px-3 py-2 rounded-xl">
+                  <Icon name="AlertCircle" size={14} className="shrink-0" />
+                  {pwError}
+                </div>
+              )}
+              {pwOk && (
+                <div className="flex items-center gap-1.5 text-sm text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl">
+                  <Icon name="CheckCircle" size={14} className="shrink-0" />
+                  Пароль успешно изменён!
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button
+                disabled={pwSaving}
+                onClick={async () => {
+                  if (!pwForm.current || !pwForm.next || !pwForm.confirm) { setPwError("Заполните все поля"); return; }
+                  if (pwForm.next !== pwForm.confirm) { setPwError("Пароли не совпадают"); return; }
+                  if (pwForm.next.length < 6) { setPwError("Минимум 6 символов"); return; }
+                  setPwSaving(true); setPwError("");
+                  try {
+                    await changePassword(pwForm.current, pwForm.next);
+                    setPwOk(true);
+                    setPwForm({ current: "", next: "", confirm: "" });
+                    setTimeout(() => { setShowPasswordForm(false); setPwOk(false); }, 1500);
+                  } catch (e: unknown) {
+                    setPwError(e instanceof Error ? e.message : "Ошибка");
+                  } finally { setPwSaving(false); }
+                }}
+                className="flex-1 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-1.5"
+              >
+                {pwSaving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : null}
+                Сохранить
+              </button>
+              <button
+                onClick={() => { setShowPasswordForm(false); setPwForm({ current: "", next: "", confirm: "" }); setPwError(""); }}
+                className="px-4 py-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:bg-muted/60"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

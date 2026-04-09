@@ -147,6 +147,25 @@ export async function getHotAds(limit = 8): Promise<{ ads: Ad[] }> {
   return call("hot_ads", { limit: String(limit) });
 }
 
+export interface Subscription {
+  id: number;
+  type: "category" | "keyword";
+  value: string;
+  created_at: string;
+}
+
+export async function subscribe(type: "category" | "keyword", value: string): Promise<{ ok: boolean; created: boolean }> {
+  return call("subscribe", {}, { type, value });
+}
+
+export async function unsubscribe(id: number): Promise<{ ok: boolean }> {
+  return call("unsubscribe", {}, { id });
+}
+
+export async function getMySubscriptions(): Promise<{ subscriptions: Subscription[] }> {
+  return call("my_subscriptions");
+}
+
 export function formatTimeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const diff = Date.now() - date.getTime();

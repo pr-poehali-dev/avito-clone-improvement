@@ -62,3 +62,9 @@ export async function updateProfile(data: { name: string; city?: string; phone?:
   const res = await call("update", data, token);
   return res.user;
 }
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const token = getToken();
+  if (!token) throw new Error("Не авторизован");
+  await call("change_password", { current_password: currentPassword, new_password: newPassword }, token);
+}

@@ -1,12 +1,12 @@
 {
   "tests": [
     {
-      "name": "Register new user",
+      "name": "Change password without auth",
       "method": "POST",
-      "path": "/?action=register",
-      "body": {"name": "Тест Пользователь", "email": "test_unique_xyz777@example.com", "password": "password123", "city": "Москва"},
-      "expectedStatus": 200,
-      "expectedBody": {"token": "string"},
+      "path": "/?action=change_password",
+      "body": {"current_password": "old", "new_password": "new123"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
       "bodyMatcher": "partial"
     },
     {

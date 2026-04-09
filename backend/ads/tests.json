@@ -105,6 +105,23 @@
       "path": "/?action=hot_ads",
       "expectedStatus": 200,
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Subscribe without auth",
+      "method": "POST",
+      "path": "/?action=subscribe",
+      "body": {"type": "category", "value": "electronics"},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "My subscriptions without auth",
+      "method": "GET",
+      "path": "/?action=my_subscriptions",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
     }
   ]
 }

@@ -242,14 +242,38 @@ def handler(event: dict, context) -> dict:
             UPDATE {SCHEMA}.ads SET status = 'active', moderation_comment = NULL, updated_at = NOW()
             WHERE id = %s
         """, (int(ad_id),))
-        # Получаем владельца и заголовок
-        cur.execute(f"SELECT user_id, title FROM {SCHEMA}.ads WHERE id = %s", (int(ad_id),))
+        # Получаем данные объявления
+        cur.execute(f"SELECT user_id, title, category, city FROM {SCHEMA}.ads WHERE id = %s", (int(ad_id),))
         ad_row = cur.fetchone()
         if ad_row:
+            seller_id, ad_title, ad_category, ad_city = ad_row
+            # Уведомление продавцу
             cur.execute(f"""
                 INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
                 VALUES (%s, 'approved', 'Объявление одобрено', %s, %s)
-            """, (ad_row[0], f'Ваше объявление «{ad_row[1]}» прошло проверку и теперь видно всем покупателям.', int(ad_id)))
+            """, (seller_id, f'Ваше объявление «{ad_title}» прошло проверку и теперь видно всем покупателям.', int(ad_id)))
+            # Уведомления подписчикам на эту категорию
+            cur.execute(f"""
+                SELECT DISTINCT user_id FROM {SCHEMA}.subscriptions
+                WHERE type = 'category' AND value = %s AND user_id != %s
+            """, (ad_category, seller_id))
+            for (sub_uid,) in cur.fetchall():
+                cur.execute(f"""
+                    INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+                    VALUES (%s, 'subscription', 'Новое объявление по подписке', %s, %s)
+                """, (sub_uid, f'Новое объявление «{ad_title}»{" в " + ad_city if ad_city else ""}', int(ad_id)))
+            # Уведомления подписчикам по ключевым словам
+            cur.execute(f"""
+                SELECT DISTINCT user_id, value FROM {SCHEMA}.subscriptions
+                WHERE type = 'keyword' AND user_id != %s
+            """, (seller_id,))
+            for (sub_uid, keyword) in cur.fetchall():
+                if keyword.lower() in ad_title.lower():
+                    cur.execute(f"""
+                        INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+                        VALUES (%s, 'subscription', 'Новое объявление по подписке', %s, %s)
+
+                    """, (sub_uid, f'По запросу «{keyword}»: {ad_title}', int(ad_id)))
         conn.commit()
         conn.close()
         return ok({"ok": True})

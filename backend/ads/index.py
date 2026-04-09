@@ -769,4 +769,76 @@ def handler(event: dict, context) -> dict:
                 "week_views": r[9], "score": r[10], "hot": True} for r in rows]
         return ok({"ads": ads})
 
+    # --- subscribe: подписаться на категорию или ключевое слово ---
+    if action == "subscribe":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        sub_type = (body.get("type") or "category").strip()
+        value = (body.get("value") or "").strip()
+        if not value:
+            conn.close()
+            return err(400, "Укажите значение подписки")
+        if sub_type not in ("category", "keyword"):
+            conn.close()
+            return err(400, "Тип должен быть category или keyword")
+        cur = conn.cursor()
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.subscriptions (user_id, type, value)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (user_id, type, value) DO NOTHING
+            RETURNING id
+        """, (user_id, sub_type, value))
+        row = cur.fetchone()
+        conn.commit()
+        conn.close()
+        return ok({"ok": True, "created": bool(row)})
+
+    # --- unsubscribe: отписаться ---
+    if action == "unsubscribe":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        sub_id = body.get("id")
+        sub_type = body.get("type")
+        value = body.get("value")
+        cur = conn.cursor()
+        if sub_id:
+            cur.execute(f"UPDATE {SCHEMA}.subscriptions SET id = id WHERE id = %s AND user_id = %s", (int(sub_id), user_id))
+            cur.execute(f"DELETE FROM {SCHEMA}.subscriptions WHERE id = %s AND user_id = %s", (int(sub_id), user_id))
+        elif sub_type and value:
+            cur.execute(f"DELETE FROM {SCHEMA}.subscriptions WHERE user_id = %s AND type = %s AND value = %s", (user_id, sub_type, value))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
+    # --- my_subscriptions: список подписок пользователя ---
+    if action == "my_subscriptions":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT id, type, value, created_at
+            FROM {SCHEMA}.subscriptions
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+        """, (user_id,))
+        rows = cur.fetchall()
+        conn.close()
+        subs = [{"id": r[0], "type": r[1], "value": r[2], "created_at": str(r[3])} for r in rows]
+        return ok({"subscriptions": subs})
+
     return err(400, "Неизвестное действие")
