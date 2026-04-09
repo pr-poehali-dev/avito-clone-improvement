@@ -8,6 +8,7 @@ import MediaGallery from "@/components/MediaGallery";
 import ShareButton from "@/components/ads/ShareButton";
 import ViewStatsChart from "@/components/ads/ViewStatsChart";
 import PriceOfferForm from "@/components/ads/PriceOfferForm";
+import ReportButton from "@/components/ads/ReportButton";
 
 const ADS_URL = "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
 
@@ -16,6 +17,9 @@ interface AdFull {
   city: string; category: string; views: number; image_url: string | null;
   created_at: string; status: string; user_id: number; seller_name: string;
   media: Array<{ url: string; type: string }>;
+  subcategory?: string | null;
+  condition?: string | null;
+  quantity?: number;
 }
 
 interface AdPageProps {
@@ -110,11 +114,39 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
               <h1 className="font-display text-xl font-bold leading-snug">{ad.title}</h1>
             </div>
 
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1"><Icon name="MapPin" size={13} />{ad.city || "Не указан"}</span>
               <span className="flex items-center gap-1"><Icon name="Eye" size={13} />{ad.views}</span>
               <span>{formatTimeAgo(ad.created_at)}</span>
             </div>
+
+            {/* Метаданные: подкатегория, состояние, количество */}
+            {(ad.subcategory || ad.condition || (ad.quantity && ad.quantity > 1)) && (
+              <div className="flex flex-wrap gap-2">
+                {ad.subcategory && (
+                  <span className="flex items-center gap-1 text-xs bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-medium">
+                    <Icon name="Tag" size={11} />
+                    {ad.subcategory}
+                  </span>
+                )}
+                {ad.condition && (
+                  <span className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${
+                    ad.condition === "new"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-amber-50 text-amber-700"
+                  }`}>
+                    <Icon name={ad.condition === "new" ? "Sparkles" : "RefreshCw"} size={11} />
+                    {ad.condition === "new" ? "Новое" : "Б/У"}
+                  </span>
+                )}
+                {ad.quantity && ad.quantity > 1 && (
+                  <span className="flex items-center gap-1 text-xs bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-full font-medium">
+                    <Icon name="Package" size={11} />
+                    {ad.quantity} шт.
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Seller */}
             <div
@@ -218,6 +250,13 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
       {/* Статистика просмотров — только для автора */}
       {user?.id === ad.user_id && (
         <ViewStatsChart adId={ad.id} />
+      )}
+
+      {/* Пожаловаться — для всех кроме автора */}
+      {user?.id !== ad.user_id && (
+        <div className="flex justify-end">
+          <ReportButton adId={ad.id} sellerId={ad.user_id} isAuth={!!user} onAuthClick={onAuthClick} />
+        </div>
       )}
     </div>
   );

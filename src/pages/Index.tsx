@@ -14,6 +14,7 @@ import ReviewsPage from "@/pages/ReviewsPage";
 import AdminPage from "@/pages/AdminPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SubscriptionsPage from "@/pages/SubscriptionsPage";
+import SupportButton from "@/components/SupportButton";
 import { User, getMe, logout, getToken } from "@/lib/auth";
 
 export default function Index() {
@@ -134,6 +135,8 @@ export default function Index() {
           onSuccess={handleAuthSuccess}
         />
       )}
+
+      <SupportButton />
 
       {/* Footer */}
       <footer className="border-t border-border/50 mt-16 py-10">

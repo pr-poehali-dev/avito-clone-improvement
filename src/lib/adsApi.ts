@@ -24,6 +24,7 @@ export interface Ad {
 
 export interface ListFilters {
   category?: string;
+  subcategory?: string;
   city?: string;
   min_price?: string;
   max_price?: string;
@@ -50,6 +51,7 @@ async function call(action: string, params: Record<string, string> = {}, body?: 
 export async function listAds(filters: ListFilters = {}): Promise<{ ads: Ad[]; total: number }> {
   const params: Record<string, string> = {};
   if (filters.category) params.category = filters.category;
+  if (filters.subcategory) params.subcategory = filters.subcategory;
   if (filters.city && filters.city !== "Все города") params.city = filters.city;
   if (filters.min_price) params.min_price = filters.min_price;
   if (filters.max_price) params.max_price = filters.max_price;

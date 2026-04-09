@@ -7,6 +7,7 @@ import { listAds, getSiteStats, getViewedIds, Ad, ListFilters } from "@/lib/adsA
 import { getToken } from "@/lib/auth";
 import RecommendationsBlock from "@/components/RecommendationsBlock";
 import HotAdsBlock from "@/components/HotAdsBlock";
+import AdBanner from "@/components/AdBanner";
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -171,8 +172,14 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
         )}
       </section>
 
+      {/* Рекламный баннер #1 */}
+      <AdBanner variant="horizontal" slot="0" />
+
       {/* Горячие объявления */}
       <HotAdsBlock onNavigate={onNavigate} viewedIds={viewedIds} />
+
+      {/* Рекламный баннер #2 */}
+      <AdBanner variant="horizontal" slot="1" />
 
       {/* Рекомендации */}
       <RecommendationsBlock onNavigate={onNavigate} viewedIds={viewedIds} />

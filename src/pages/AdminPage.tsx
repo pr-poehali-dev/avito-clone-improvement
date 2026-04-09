@@ -24,7 +24,13 @@ interface UserActivity {
   ads_count: number; messages_count: number; reviews_count: number; last_active: string | null;
 }
 
-type Tab = "stats" | "users" | "ads" | "activity";
+interface Report {
+  id: number; reason: string; details: string | null; status: string; admin_reply: string | null;
+  created_at: string; reporter_name: string; reporter_id: number;
+  ad_title: string | null; ad_id: number | null; target_name: string | null; target_id: number | null;
+}
+
+type Tab = "stats" | "users" | "ads" | "activity" | "reports";
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("stats");
@@ -32,6 +38,11 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [ads, setAds] = useState<AdminAd[]>([]);
   const [activity, setActivity] = useState<UserActivity[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [reportsFilter, setReportsFilter] = useState("open");
+  const [replyModal, setReplyModal] = useState<Report | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [openReportsCount, setOpenReportsCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -73,10 +84,25 @@ export default function AdminPage() {
     setLoading(false);
   };
 
+  const loadReports = async (status = reportsFilter) => {
+    setLoading(true);
+    const data = await adminCall("reports", { status });
+    if (!data.error) { setReports(data.reports || []); setOpenReportsCount(data.open_count || 0); }
+    setLoading(false);
+  };
+
+  const handleResolve = async (id: number, reply: string, status: string) => {
+    await adminCall("resolve_report", {}, { id, reply, status });
+    setReplyModal(null);
+    setReplyText("");
+    loadReports();
+  };
+
   useEffect(() => {
     if (tab === "users") loadUsers(search);
     if (tab === "ads") loadAds(search, statusFilter);
     if (tab === "activity") loadActivity();
+    if (tab === "reports") loadReports();
   }, [tab]);
 
   const handleSearch = (v: string) => {
@@ -163,16 +189,21 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-2 flex-wrap">
-        {([["stats", "BarChart2", "Статистика"], ["users", "Users", "Пользователи"], ["ads", "FileText", "Объявления"], ["activity", "Activity", "Активность"]] as const).map(([id, icon, label]) => (
+        {([["stats", "BarChart2", "Статистика"], ["users", "Users", "Пользователи"], ["ads", "FileText", "Объявления"], ["activity", "Activity", "Активность"], ["reports", "Flag", "Жалобы"]] as const).map(([id, icon, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               tab === id ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
             }`}
           >
             <Icon name={icon} size={15} />
             {label}
+            {id === "reports" && openReportsCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">
+                {openReportsCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -383,6 +414,61 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Reports */}
+      {tab === "reports" && !loading && (
+        <div className="space-y-4">
+          <div className="flex gap-2 flex-wrap">
+            {[["open", "Открытые"], ["resolved", "Решённые"], ["dismissed", "Отклонённые"], ["all", "Все"]] .map(([s, l]) => (
+              <button key={s} onClick={() => { setReportsFilter(s); loadReports(s); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${reportsFilter === s ? "bg-rose-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+          {reports.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Icon name="Flag" size={40} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Жалоб нет</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {reports.map(r => (
+                <div key={r.id} className="glass-card rounded-2xl p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${r.status === "open" ? "bg-rose-100 text-rose-600" : r.status === "resolved" ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                          {r.status === "open" ? "Открыта" : r.status === "resolved" ? "Решена" : "Отклонена"}
+                        </span>
+                        <span className="text-xs font-semibold">{r.reason}</span>
+                        <span className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString("ru-RU")}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        От: <span className="font-medium text-foreground">{r.reporter_name}</span>
+                        {r.ad_title && <> · Объявление: <span className="font-medium text-foreground">«{r.ad_title}»</span></>}
+                        {r.target_name && <> · На пользователя: <span className="font-medium text-foreground">{r.target_name}</span></>}
+                      </div>
+                      {r.details && <p className="text-xs text-muted-foreground mt-1 italic">«{r.details}»</p>}
+                      {r.admin_reply && (
+                        <div className="mt-2 px-3 py-2 bg-emerald-50 rounded-xl text-xs text-emerald-700">
+                          <span className="font-semibold">Ответ: </span>{r.admin_reply}
+                        </div>
+                      )}
+                    </div>
+                    {r.status === "open" && (
+                      <button onClick={() => { setReplyModal(r); setReplyText(""); }}
+                        className="shrink-0 px-3 py-1.5 bg-violet-600 text-white rounded-xl text-xs font-semibold hover:opacity-90">
+                        Ответить
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Activity */}
       {tab === "activity" && !loading && (
         <div className="glass-card rounded-2xl overflow-hidden">
@@ -428,6 +514,35 @@ export default function AdminPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Reply to report modal */}
+      {replyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+            <h3 className="font-display text-lg font-bold mb-1">Ответ на жалобу</h3>
+            <p className="text-sm text-muted-foreground mb-1">Причина: <span className="font-medium text-foreground">{replyModal.reason}</span></p>
+            {replyModal.details && <p className="text-xs text-muted-foreground mb-3 italic">«{replyModal.details}»</p>}
+            <textarea rows={3} value={replyText} onChange={e => setReplyText(e.target.value)}
+              placeholder="Ответ пользователю (необязательно)..."
+              className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 resize-none mb-4"
+            />
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={() => handleResolve(replyModal.id, replyText, "resolved")}
+                className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600">
+                Решена
+              </button>
+              <button onClick={() => handleResolve(replyModal.id, replyText, "dismissed")}
+                className="flex-1 py-2.5 bg-muted text-muted-foreground rounded-xl font-semibold text-sm hover:bg-muted/80">
+                Отклонить жалобу
+              </button>
+              <button onClick={() => setReplyModal(null)}
+                className="px-4 py-2.5 border border-border rounded-xl text-muted-foreground hover:bg-muted/60 text-sm">
+                Отмена
+              </button>
+            </div>
           </div>
         </div>
       )}

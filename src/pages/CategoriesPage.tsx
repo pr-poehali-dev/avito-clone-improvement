@@ -17,10 +17,10 @@ export default function CategoriesPage({ adImages, onNavigate }: CategoriesPageP
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const loadAds = async (category?: string, _sub?: string, extra: ListFilters = {}) => {
+  const loadAds = async (category?: string, sub?: string, extra: ListFilters = {}) => {
     setLoading(true);
     try {
-      const res = await listAds({ category, ...extra });
+      const res = await listAds({ category, subcategory: sub || undefined, ...extra });
       setAds(res.ads);
       setTotal(res.total);
     } catch {

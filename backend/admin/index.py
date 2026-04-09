@@ -301,6 +301,64 @@ def handler(event: dict, context) -> dict:
         conn.close()
         return ok({"ok": True})
 
+    # --- reports: список жалоб ---
+    if action == "reports":
+        status_filter = qs.get("status") or "open"
+        limit = int(qs.get("limit") or 50)
+        where = f"r.status = '{status_filter}'" if status_filter != "all" else "TRUE"
+        cur.execute(f"""
+            SELECT r.id, r.reason, r.details, r.status, r.admin_reply,
+                   r.created_at, r.updated_at,
+                   reporter.name as reporter_name, reporter.id as reporter_id,
+                   a.title as ad_title, a.id as ad_id,
+                   target.name as target_name, target.id as target_id
+            FROM {SCHEMA}.reports r
+            JOIN {SCHEMA}.users reporter ON reporter.id = r.reporter_id
+            LEFT JOIN {SCHEMA}.ads a ON a.id = r.ad_id
+            LEFT JOIN {SCHEMA}.users target ON target.id = r.target_user_id
+            WHERE {where}
+            ORDER BY r.created_at DESC
+            LIMIT {limit}
+        """)
+        rows = cur.fetchall()
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.reports WHERE status = 'open'")
+        open_count = cur.fetchone()[0]
+        conn.close()
+        reports = []
+        for r in rows:
+            reports.append({
+                "id": r[0], "reason": r[1], "details": r[2], "status": r[3],
+                "admin_reply": r[4], "created_at": str(r[5]), "updated_at": str(r[6]),
+                "reporter_name": r[7], "reporter_id": r[8],
+                "ad_title": r[9], "ad_id": r[10],
+                "target_name": r[11], "target_id": r[12],
+            })
+        return ok({"reports": reports, "open_count": open_count})
+
+    # --- resolve_report: ответить на жалобу и изменить статус ---
+    if action == "resolve_report":
+        report_id = body.get("id")
+        reply = (body.get("reply") or "").strip()
+        new_status = (body.get("status") or "resolved").strip()
+        if not report_id:
+            conn.close()
+            return err(400, "Укажите id жалобы")
+        cur.execute(f"""
+            UPDATE {SCHEMA}.reports
+            SET status = %s, admin_reply = %s, updated_at = NOW()
+            WHERE id = %s
+            RETURNING reporter_id, reason
+        """, (new_status, reply or None, int(report_id)))
+        row = cur.fetchone()
+        if row and reply:
+            cur.execute(f"""
+                INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+                VALUES (%s, 'report_reply', 'Ответ на вашу жалобу', %s, NULL)
+            """, (row[0], f'По жалобе «{row[1]}»: {reply}'))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
     # --- user_activity: история активности пользователей для админа ---
     if action == "user_activity":
         limit = int(qs.get("limit") or 50)

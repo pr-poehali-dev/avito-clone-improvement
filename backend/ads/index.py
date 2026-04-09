@@ -60,6 +60,7 @@ def handler(event: dict, context) -> dict:
     # --- list: публичный список объявлений ---
     if action == "list":
         category = qs.get("category") or ""
+        subcategory = qs.get("subcategory") or ""
         city = qs.get("city") or ""
         min_price = qs.get("min_price") or ""
         max_price = qs.get("max_price") or ""
@@ -70,6 +71,9 @@ def handler(event: dict, context) -> dict:
         where = [f"a.status = 'active'"]
         if category:
             where.append(f"a.category = '{category}'")
+        if subcategory:
+            safe_sub = subcategory.replace("'", "''")
+            where.append(f"a.subcategory = '{safe_sub}'")
         if city and city != "Все города":
             where.append(f"a.city ILIKE '%{city}%'")
         if min_price:
@@ -286,7 +290,8 @@ def handler(event: dict, context) -> dict:
         cur.execute(f"""
             SELECT a.id, a.title, a.description, a.price, a.city, a.category,
                    a.views, a.image_url, a.created_at, a.status,
-                   u.id as user_id, u.name as seller_name
+                   u.id as user_id, u.name as seller_name,
+                   a.subcategory, a.condition, a.quantity
             FROM {SCHEMA}.ads a
             JOIN {SCHEMA}.users u ON u.id = a.user_id
             WHERE a.id = %s
@@ -328,6 +333,7 @@ def handler(event: dict, context) -> dict:
             "price": row[3], "city": row[4], "category": row[5],
             "views": row[6] + 1, "image_url": row[7], "created_at": str(row[8]),
             "status": row[9], "user_id": row[10], "seller_name": row[11],
+            "subcategory": row[12], "condition": row[13], "quantity": row[14],
             "media": media if media else ([{"url": row[7], "type": "photo"}] if row[7] else []),
         }
         return ok({"ad": ad})
@@ -768,6 +774,33 @@ def handler(event: dict, context) -> dict:
                 "created_at": str(r[7]), "seller_name": r[8],
                 "week_views": r[9], "score": r[10], "hot": True} for r in rows]
         return ok({"ads": ads})
+
+    # --- send_report: пожаловаться на объявление или пользователя ---
+    if action == "send_report":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        ad_id_r = body.get("ad_id")
+        target_user_id = body.get("target_user_id")
+        reason = (body.get("reason") or "").strip()
+        details = (body.get("details") or "").strip() or None
+        if not reason:
+            conn.close()
+            return err(400, "Укажите причину жалобы")
+        cur = conn.cursor()
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.reports (reporter_id, ad_id, target_user_id, reason, details)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """, (user_id, ad_id_r, target_user_id, reason, details))
+        report_id = cur.fetchone()[0]
+        conn.commit()
+        conn.close()
+        return ok({"ok": True, "report_id": report_id})
 
     # --- subscribe: подписаться на категорию или ключевое слово ---
     if action == "subscribe":
