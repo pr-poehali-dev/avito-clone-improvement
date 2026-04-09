@@ -5,6 +5,9 @@ import { formatTimeAgo } from "@/lib/adsApi";
 import { sendMessage } from "@/lib/messagesApi";
 import { User } from "@/lib/auth";
 import MediaGallery from "@/components/MediaGallery";
+import ShareButton from "@/components/ads/ShareButton";
+import ViewStatsChart from "@/components/ads/ViewStatsChart";
+import PriceOfferForm from "@/components/ads/PriceOfferForm";
 
 const ADS_URL = "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
 
@@ -183,11 +186,21 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
                   <Icon name="Phone" size={15} />
                   Показать номер
                 </button>
+                <PriceOfferForm
+                  adId={ad.id}
+                  adPrice={ad.price}
+                  isAuth={!!user}
+                  onAuthClick={onAuthClick}
+                />
+                <ShareButton title={ad.title} adId={ad.id} />
               </div>
             )}
             {user?.id === ad.user_id && (
-              <div className="px-4 py-3 bg-violet-50 rounded-xl text-sm text-violet-700 font-medium text-center">
-                Это ваше объявление
+              <div className="space-y-3">
+                <div className="px-4 py-3 bg-violet-50 rounded-xl text-sm text-violet-700 font-medium text-center">
+                  Это ваше объявление
+                </div>
+                <ShareButton title={ad.title} adId={ad.id} />
               </div>
             )}
           </div>
@@ -200,6 +213,11 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
           <h2 className="font-display text-lg font-bold mb-3">Описание</h2>
           <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{ad.description}</p>
         </div>
+      )}
+
+      {/* Статистика просмотров — только для автора */}
+      {user?.id === ad.user_id && (
+        <ViewStatsChart adId={ad.id} />
       )}
     </div>
   );

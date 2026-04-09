@@ -173,8 +173,11 @@ def handler(event: dict, context) -> dict:
         description = (body.get("description") or "").strip()
         price_raw = body.get("price") or 0
         category = (body.get("category") or "").strip()
+        subcategory = (body.get("subcategory") or "").strip() or None
         city = (body.get("city") or "").strip()
         image_url = (body.get("image_url") or "").strip() or None
+        condition = (body.get("condition") or "used").strip()
+        quantity = int(body.get("quantity") or 1)
 
         if not title or not category:
             conn.close()
@@ -192,11 +195,11 @@ def handler(event: dict, context) -> dict:
 
         cur = conn.cursor()
         cur.execute(f"""
-            INSERT INTO {SCHEMA}.ads (user_id, title, description, price, category, city, image_url, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending')
+            INSERT INTO {SCHEMA}.ads (user_id, title, description, price, category, subcategory, city, image_url, status, condition, quantity)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s)
             RETURNING id, title, price, city, category, views, image_url, created_at
-        """, (user_id, title, description, price, category, city,
-              media_urls[0]["url"] if media_urls else image_url))
+        """, (user_id, title, description, price, category, subcategory, city,
+              media_urls[0]["url"] if media_urls else image_url, condition, quantity))
         row = cur.fetchone()
         ad_id = row[0]
 
@@ -302,6 +305,21 @@ def handler(event: dict, context) -> dict:
 
         # Инкрементируем просмотры
         cur.execute(f"UPDATE {SCHEMA}.ads SET views = views + 1 WHERE id = %s", (int(ad_id),))
+        # Обновляем дневную статистику просмотров
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.ad_view_stats (ad_id, stat_date, views_count)
+            VALUES (%s, CURRENT_DATE, 1)
+            ON CONFLICT (ad_id, stat_date) DO UPDATE SET views_count = {SCHEMA}.ad_view_stats.views_count + 1
+        """, (int(ad_id),))
+        # Если авторизован — записываем в историю просмотров
+        if token:
+            view_user_id = get_user_id(token, conn)
+            if view_user_id:
+                cur.execute(f"""
+                    INSERT INTO {SCHEMA}.viewed_ads (user_id, ad_id, viewed_at)
+                    VALUES (%s, %s, NOW())
+                    ON CONFLICT (user_id, ad_id) DO UPDATE SET viewed_at = NOW()
+                """, (view_user_id, int(ad_id)))
         conn.commit()
         conn.close()
 
@@ -471,5 +489,187 @@ def handler(event: dict, context) -> dict:
         total_deals = cur.fetchone()[0]
         conn.close()
         return ok({"total_ads": total_ads, "total_users": total_users, "total_cities": total_cities, "total_deals": total_deals})
+
+    # --- track_view: записать просмотр объявления авторизованным пользователем ---
+    if action == "track_view":
+        ad_id = body.get("ad_id") or qs.get("ad_id")
+        if not ad_id:
+            return err(400, "Укажите ad_id")
+        conn = get_conn()
+        cur = conn.cursor()
+        # Обновить дневную статистику просмотров
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.ad_view_stats (ad_id, stat_date, views_count)
+            VALUES (%s, CURRENT_DATE, 1)
+            ON CONFLICT (ad_id, stat_date) DO UPDATE SET views_count = {SCHEMA}.ad_view_stats.views_count + 1
+        """, (int(ad_id),))
+        # Если пользователь авторизован — сохранить в историю
+        if token:
+            user_id = get_user_id(token, conn)
+            if user_id:
+                cur.execute(f"""
+                    INSERT INTO {SCHEMA}.viewed_ads (user_id, ad_id, viewed_at)
+                    VALUES (%s, %s, NOW())
+                    ON CONFLICT (user_id, ad_id) DO UPDATE SET viewed_at = NOW()
+                """, (user_id, int(ad_id)))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
+    # --- view_history: история просмотров пользователя ---
+    if action == "view_history":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        limit = int(qs.get("limit") or 30)
+        offset = int(qs.get("offset") or 0)
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT a.id, a.title, a.price, a.city, a.category, a.views,
+                   a.image_url, a.created_at, u.name as seller_name,
+                   a.status, v.viewed_at
+            FROM {SCHEMA}.viewed_ads v
+            JOIN {SCHEMA}.ads a ON a.id = v.ad_id
+            JOIN {SCHEMA}.users u ON u.id = a.user_id
+            WHERE v.user_id = %s
+            ORDER BY v.viewed_at DESC
+            LIMIT %s OFFSET %s
+        """, (user_id, limit, offset))
+        rows = cur.fetchall()
+        conn.close()
+        ads = []
+        for r in rows:
+            ads.append({
+                "id": r[0], "title": r[1], "price": r[2], "city": r[3],
+                "category": r[4], "views": r[5], "image_url": r[6],
+                "created_at": str(r[7]), "seller_name": r[8],
+                "status": r[9], "viewed_at": str(r[10]),
+            })
+        return ok({"ads": ads})
+
+    # --- viewed_ids: список id просмотренных объявлений для пометки на карточках ---
+    if action == "viewed_ids":
+        if not token:
+            return ok({"ids": []})
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return ok({"ids": []})
+        cur = conn.cursor()
+        cur.execute(f"SELECT ad_id FROM {SCHEMA}.viewed_ads WHERE user_id = %s", (user_id,))
+        ids = [r[0] for r in cur.fetchall()]
+        conn.close()
+        return ok({"ids": ids})
+
+    # --- ad_view_stats: статистика просмотров объявления по дням (только для автора) ---
+    if action == "ad_view_stats":
+        ad_id = qs.get("ad_id") or body.get("ad_id")
+        period = qs.get("period") or "week"
+        if not ad_id:
+            return err(400, "Укажите ad_id")
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        cur = conn.cursor()
+        # Проверяем что это объявление принадлежит пользователю
+        cur.execute(f"SELECT id FROM {SCHEMA}.ads WHERE id = %s AND user_id = %s", (int(ad_id), user_id))
+        if not cur.fetchone():
+            conn.close()
+            return err(403, "Доступ запрещён")
+        days = {"day": 1, "3days": 3, "week": 7, "month": 30}.get(period, 7)
+        cur.execute(f"""
+            SELECT stat_date, views_count
+            FROM {SCHEMA}.ad_view_stats
+            WHERE ad_id = %s AND stat_date >= CURRENT_DATE - INTERVAL '{days} days'
+            ORDER BY stat_date ASC
+        """, (int(ad_id),))
+        rows = cur.fetchall()
+        conn.close()
+        stats = [{"date": str(r[0]), "views": r[1]} for r in rows]
+        return ok({"stats": stats})
+
+    # --- offer_price: покупатель предлагает свою цену ---
+    if action == "offer_price":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        ad_id = body.get("ad_id")
+        offered_price = body.get("offered_price")
+        message = body.get("message") or ""
+        if not ad_id or not offered_price:
+            conn.close()
+            return err(400, "Укажите ad_id и offered_price")
+        cur = conn.cursor()
+        # Нельзя торговаться с самим собой
+        cur.execute(f"SELECT user_id, title, price FROM {SCHEMA}.ads WHERE id = %s AND status = 'active'", (int(ad_id),))
+        ad_row = cur.fetchone()
+        if not ad_row:
+            conn.close()
+            return err(404, "Объявление не найдено")
+        seller_id, ad_title, ad_price = ad_row
+        if seller_id == user_id:
+            conn.close()
+            return err(400, "Нельзя торговаться с самим собой")
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.price_offers (ad_id, buyer_id, offered_price, message, status)
+            VALUES (%s, %s, %s, %s, 'pending')
+            RETURNING id
+        """, (int(ad_id), user_id, int(offered_price), message))
+        offer_id = cur.fetchone()[0]
+        # Уведомление продавцу
+        cur.execute(f"""
+            SELECT name FROM {SCHEMA}.users WHERE id = %s
+        """, (user_id,))
+        buyer_name = (cur.fetchone() or ["Покупатель"])[0]
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+            VALUES (%s, 'price_offer', 'Предложение цены', %s, %s)
+        """, (seller_id, f'{buyer_name} предлагает {int(offered_price):,} ₽ за «{ad_title}»', int(ad_id)))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True, "offer_id": offer_id})
+
+    # --- get_offers: получить предложения цен для объявления (для продавца) ---
+    if action == "get_offers":
+        if not token:
+            return err(401, "Не авторизован")
+        ad_id = qs.get("ad_id") or body.get("ad_id")
+        if not ad_id:
+            return err(400, "Укажите ad_id")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        cur = conn.cursor()
+        cur.execute(f"SELECT id FROM {SCHEMA}.ads WHERE id = %s AND user_id = %s", (int(ad_id), user_id))
+        if not cur.fetchone():
+            conn.close()
+            return err(403, "Доступ запрещён")
+        cur.execute(f"""
+            SELECT o.id, o.offered_price, o.message, o.status, o.created_at, u.name as buyer_name
+            FROM {SCHEMA}.price_offers o
+            JOIN {SCHEMA}.users u ON u.id = o.buyer_id
+            WHERE o.ad_id = %s
+            ORDER BY o.created_at DESC
+        """, (int(ad_id),))
+        rows = cur.fetchall()
+        conn.close()
+        offers = [{"id": r[0], "offered_price": r[1], "message": r[2], "status": r[3],
+                   "created_at": str(r[4]), "buyer_name": r[5]} for r in rows]
+        return ok({"offers": offers})
 
     return err(400, "Неизвестное действие")

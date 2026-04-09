@@ -12,7 +12,7 @@ interface MyAdsPageProps {
   onNavigate?: (page: string) => void;
 }
 
-const emptyForm = { title: "", price: "", description: "", category: "", city: "" };
+const emptyForm = { title: "", price: "", description: "", category: "", subcategory: "", city: "", condition: "used", quantity: "1" };
 
 export default function MyAdsPage({ adImages, openForm, onFormOpened, onNavigate }: MyAdsPageProps) {
   const [showForm, setShowForm] = useState(false);
@@ -68,7 +68,10 @@ export default function MyAdsPage({ adImages, openForm, onFormOpened, onNavigate
         description: formData.description,
         price: parseInt(formData.price) || 0,
         category: formData.category,
+        subcategory: formData.subcategory || undefined,
         city: formData.city,
+        condition: formData.condition,
+        quantity: parseInt(formData.quantity) || 1,
         image_url: readyMedia[0]?.url || undefined,
         media_urls: readyMedia.map(m => ({ url: m.url, type: m.type })),
       });

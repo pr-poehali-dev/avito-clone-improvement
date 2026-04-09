@@ -12,6 +12,7 @@ import AboutPage from "@/pages/AboutPage";
 import AdPage from "@/pages/AdPage";
 import ReviewsPage from "@/pages/ReviewsPage";
 import AdminPage from "@/pages/AdminPage";
+import HistoryPage from "@/pages/HistoryPage";
 import { User, getMe, logout, getToken } from "@/lib/auth";
 
 export default function Index() {
@@ -57,7 +58,7 @@ export default function Index() {
       setActivePage("reviews");
       return;
     }
-    const protectedPages = ["my-ads", "favorites", "messages", "profile", "admin"];
+    const protectedPages = ["my-ads", "favorites", "messages", "profile", "admin", "history"];
     if (protectedPages.includes(page) && !user) {
       setShowAuth(true);
       return;
@@ -89,6 +90,7 @@ export default function Index() {
       case "profile": return <ProfilePage user={user} onLogout={handleLogout} onNavigate={handleNavigate} />;
       case "about": return <AboutPage />;
       case "admin": return <AdminPage />;
+      case "history": return <HistoryPage onNavigate={handleNavigate} />;
       case "ad": return pageParam ? (
         <AdPage
           adId={pageParam}

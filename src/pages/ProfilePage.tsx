@@ -73,6 +73,13 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
       color: "bg-rose-100 text-rose-600",
     },
     {
+      icon: "History",
+      label: "История просмотров",
+      desc: "Объявления, которые вы смотрели",
+      action: () => onNavigate?.("history"),
+      color: "bg-amber-100 text-amber-600",
+    },
+    {
       icon: "Bell",
       label: "Уведомления",
       desc: "Push-уведомления и email",

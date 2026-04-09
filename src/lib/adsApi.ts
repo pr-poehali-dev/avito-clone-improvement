@@ -16,6 +16,10 @@ export interface Ad {
   moderation_comment?: string | null;
   sold_on_omo?: boolean;
   sold_at?: string | null;
+  subcategory?: string | null;
+  condition?: string | null;
+  quantity?: number;
+  viewed_at?: string;
 }
 
 export interface ListFilters {
@@ -64,9 +68,12 @@ export async function createAd(data: {
   description: string;
   price: number;
   category: string;
+  subcategory?: string;
   city: string;
   image_url?: string;
   media_urls?: Array<{ url: string; type: string }>;
+  condition?: string;
+  quantity?: number;
 }): Promise<{ ad: Ad }> {
   return call("create", {}, data);
 }
@@ -110,6 +117,26 @@ export async function getNotifications(): Promise<{ notifications: Notification[
 
 export async function markNotificationsRead(id?: number): Promise<void> {
   await call("notifications_read", {}, id ? { id } : {});
+}
+
+export async function getViewedIds(): Promise<{ ids: number[] }> {
+  return call("viewed_ids");
+}
+
+export async function getViewHistory(limit = 30, offset = 0): Promise<{ ads: Ad[] }> {
+  return call("view_history", { limit: String(limit), offset: String(offset) });
+}
+
+export async function getAdViewStats(adId: number, period: "day" | "3days" | "week" | "month" = "week"): Promise<{ stats: Array<{ date: string; views: number }> }> {
+  return call("ad_view_stats", { ad_id: String(adId), period });
+}
+
+export async function offerPrice(adId: number, offeredPrice: number, message?: string): Promise<{ ok: boolean; offer_id: number }> {
+  return call("offer_price", {}, { ad_id: adId, offered_price: offeredPrice, message: message || "" });
+}
+
+export async function getOffers(adId: number): Promise<{ offers: Array<{ id: number; offered_price: number; message: string; status: string; created_at: string; buyer_name: string }> }> {
+  return call("get_offers", { ad_id: String(adId) });
 }
 
 export function formatTimeAgo(dateStr: string): string {

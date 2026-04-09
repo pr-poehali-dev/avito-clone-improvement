@@ -27,6 +27,7 @@ interface AdCardProps {
   showDeleteBtn?: boolean;
   onNavigate?: (page: string) => void;
   onFavoriteChange?: () => void;
+  viewed?: boolean;
 }
 
 export const formatPrice = (price: number): string =>
@@ -38,7 +39,7 @@ const categoryEmojis: Record<string, string> = {
   animals: "🐾", services: "🔧", hobby: "🎨", food: "🛒",
 };
 
-export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavoriteChange }: AdCardProps) {
+export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavoriteChange, viewed }: AdCardProps) {
   const [fav, setFav] = useState(() => isFavorite(ad.id));
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -56,26 +57,42 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavo
 
   return (
     <div
-      className="glass-card hover-scale rounded-2xl overflow-hidden group cursor-pointer"
+      className={`glass-card hover-scale rounded-2xl overflow-hidden group cursor-pointer relative ${viewed ? "ring-1 ring-inset ring-border/60" : ""}`}
       onClick={() => onNavigate && onNavigate(`ad:${ad.id}`)}
     >
+      {/* Shimmer overlay for viewed ads */}
+      {viewed && (
+        <div className="absolute inset-0 pointer-events-none z-10 rounded-2xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent -translate-x-full animate-[shimmer_3s_ease-in-out_infinite]" />
+        </div>
+      )}
+
       {/* Image */}
       <div className="relative h-48 overflow-hidden bg-gradient-to-br from-muted to-muted/50">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={ad.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${viewed ? "opacity-80" : ""}`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-5xl">{categoryEmojis[ad.category] || "📦"}</span>
+            <span className={`text-5xl ${viewed ? "opacity-70" : ""}`}>{categoryEmojis[ad.category] || "📦"}</span>
           </div>
         )}
 
-        {ad.hot && (
+        {ad.hot && !viewed && (
           <div className="absolute top-3 left-3">
             <span className="badge-hot">🔥 Горячее</span>
+          </div>
+        )}
+
+        {viewed && (
+          <div className="absolute top-3 left-3">
+            <span className="flex items-center gap-1 bg-black/50 backdrop-blur text-white text-xs font-medium px-2.5 py-1 rounded-full">
+              <Icon name="Eye" size={11} />
+              Просмотрено
+            </span>
           </div>
         )}
 

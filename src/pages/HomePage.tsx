@@ -3,7 +3,8 @@ import SearchBar from "@/components/SearchBar";
 import AdCard from "@/components/AdCard";
 import Icon from "@/components/ui/icon";
 import { categories } from "@/data/mockData";
-import { listAds, getSiteStats, Ad, ListFilters } from "@/lib/adsApi";
+import { listAds, getSiteStats, getViewedIds, Ad, ListFilters } from "@/lib/adsApi";
+import { getToken } from "@/lib/auth";
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -17,6 +18,7 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ListFilters>({});
   const [siteStats, setSiteStats] = useState<{ total_users: number; total_cities: number; total_deals: number } | null>(null);
+  const [viewedIds, setViewedIds] = useState<Set<number>>(new Set());
 
   const stats = [
     { label: "Объявлений", icon: "FileText", color: "text-violet-600", value: total.toLocaleString("ru-RU") },
@@ -41,6 +43,9 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
   useEffect(() => {
     loadAds();
     getSiteStats().then(s => setSiteStats(s)).catch(() => {});
+    if (getToken()) {
+      getViewedIds().then(r => setViewedIds(new Set(r.ids))).catch(() => {});
+    }
   }, []);
 
   const handleSearch = (query: string, f: { city: string; category: string; minPrice: string; maxPrice: string }) => {
@@ -144,7 +149,7 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {demoAds.map((ad, i) => (
               <div key={ad.id} className={`animate-fade-in delay-${(i % 4 + 1) * 100}`}>
-                <AdCard ad={ad} onNavigate={onNavigate} />
+                <AdCard ad={ad} onNavigate={onNavigate} viewed={viewedIds.has(ad.id)} />
               </div>
             ))}
           </div>

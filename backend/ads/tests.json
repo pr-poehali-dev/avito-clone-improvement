@@ -57,6 +57,39 @@
       "expectedStatus": 200,
       "expectedBody": {"notifications": [], "unread_count": 0},
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Viewed ids without auth",
+      "method": "GET",
+      "path": "/?action=viewed_ids",
+      "expectedStatus": 200,
+      "expectedBody": {"ids": []},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "View history without auth",
+      "method": "GET",
+      "path": "/?action=view_history",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Offer price without auth",
+      "method": "POST",
+      "path": "/?action=offer_price",
+      "body": {"ad_id": 1, "offered_price": 500},
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Ad view stats without auth",
+      "method": "GET",
+      "path": "/?action=ad_view_stats&ad_id=1",
+      "expectedStatus": 401,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
     }
   ]
 }
