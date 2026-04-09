@@ -8,6 +8,7 @@ export interface User {
   city?: string;
   phone?: string;
   about?: string;
+  avatar_url?: string | null;
 }
 
 async function call(action: string, body?: object, token?: string) {

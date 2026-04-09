@@ -2,13 +2,13 @@ import { getToken } from "./auth";
 
 const UPLOAD_URL = "https://functions.poehali.dev/1832ec9f-5918-4a0e-8002-bf0ec2656300";
 
-export async function uploadPhoto(file: File): Promise<string> {
+async function uploadFile(file: File, action: "photo" | "avatar"): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = reader.result as string;
       const token = getToken();
-      const res = await fetch(UPLOAD_URL, {
+      const res = await fetch(`${UPLOAD_URL}/?action=${action}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -23,4 +23,12 @@ export async function uploadPhoto(file: File): Promise<string> {
     reader.onerror = () => reject(new Error("Не удалось прочитать файл"));
     reader.readAsDataURL(file);
   });
+}
+
+export async function uploadPhoto(file: File): Promise<string> {
+  return uploadFile(file, "photo");
+}
+
+export async function uploadAvatar(file: File): Promise<string> {
+  return uploadFile(file, "avatar");
 }

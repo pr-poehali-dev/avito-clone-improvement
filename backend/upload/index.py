@@ -95,16 +95,29 @@ def handler(event: dict, context) -> dict:
     if len(image_bytes) > MAX_SIZE_BYTES:
         return err(400, "Файл слишком большой. Максимум 5 МБ")
 
+    qs = event.get("queryStringParameters") or {}
+    action = qs.get("action") or body.get("action") or "photo"
+
     ext = ALLOWED_TYPES[mime]
+
+    if action == "avatar":
+        key = f"avatars/{user_id}.{ext}"
+        s3 = get_s3()
+        s3.put_object(Bucket=BUCKET, Key=key, Body=image_bytes, ContentType=mime)
+        cdn_url = f"{CDN_BASE}/{key}"
+        # Сохраняем avatar_url в профиле пользователя
+        conn = psycopg2.connect(os.environ["DATABASE_URL"])
+        cur = conn.cursor()
+        cur.execute(
+            f"UPDATE {SCHEMA}.users SET avatar_url = %s WHERE id = %s",
+            (cdn_url, user_id)
+        )
+        conn.commit()
+        conn.close()
+        return ok({"url": cdn_url, "key": key})
+
     key = f"ads/{user_id}/{uuid.uuid4()}.{ext}"
-
     s3 = get_s3()
-    s3.put_object(
-        Bucket=BUCKET,
-        Key=key,
-        Body=image_bytes,
-        ContentType=mime,
-    )
-
+    s3.put_object(Bucket=BUCKET, Key=key, Body=image_bytes, ContentType=mime)
     cdn_url = f"{CDN_BASE}/{key}"
     return ok({"url": cdn_url, "key": key})

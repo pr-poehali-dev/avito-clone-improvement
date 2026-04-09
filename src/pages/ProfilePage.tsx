@@ -1,15 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 import { User, updateProfile, changePassword } from "@/lib/auth";
 import { getUserStats, getMySubscriptions } from "@/lib/adsApi";
+import { uploadAvatar } from "@/lib/uploadApi";
 
 interface ProfilePageProps {
   user: User | null;
   onLogout: () => void;
   onNavigate?: (page: string) => void;
+  onUserUpdate?: (u: User) => void;
 }
 
-export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageProps) {
+export default function ProfilePage({ user, onLogout, onNavigate, onUserUpdate }: ProfilePageProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -31,6 +33,9 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
     unread_messages: 0,
   });
   const [subsCount, setSubsCount] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url || null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -117,6 +122,23 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
     },
   ];
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const url = await uploadAvatar(file);
+      const withTs = url + "?t=" + Date.now();
+      setAvatarUrl(withTs);
+      if (user && onUserUpdate) onUserUpdate({ ...user, avatar_url: withTs });
+    } catch {
+      // silent
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -128,13 +150,33 @@ export default function ProfilePage({ user, onLogout, onNavigate }: ProfilePageP
       <div className="glass-card rounded-2xl p-6">
         <div className="flex items-start gap-5">
           <div className="relative shrink-0">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shadow-lg">
-              <span className="text-white font-display font-bold text-2xl">
-                {profile.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <button className="absolute -bottom-1 -right-1 w-7 h-7 bg-white border-2 border-violet-200 rounded-full flex items-center justify-center hover:bg-violet-50 transition-colors">
-              <Icon name="Camera" size={12} className="text-violet-600" />
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <button
+              onClick={() => avatarInputRef.current?.click()}
+              className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-lg group"
+              title="Изменить фото"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Аватар" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center">
+                  <span className="text-white font-display font-bold text-2xl">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {avatarUploading
+                  ? <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  : <Icon name="Camera" size={18} className="text-white" />
+                }
+              </div>
             </button>
           </div>
 

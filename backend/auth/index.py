@@ -133,7 +133,7 @@ def handler(event: dict, context) -> dict:
         conn = get_conn()
         cur = conn.cursor()
         cur.execute(
-            f"SELECT u.id, u.name, u.email, u.city, u.phone, u.about FROM {SCHEMA}.sessions s JOIN {SCHEMA}.users u ON u.id = s.user_id WHERE s.token = %s AND s.expires_at > NOW()",
+            f"SELECT u.id, u.name, u.email, u.city, u.phone, u.about, u.avatar_url FROM {SCHEMA}.sessions s JOIN {SCHEMA}.users u ON u.id = s.user_id WHERE s.token = %s AND s.expires_at > NOW()",
             (token,)
         )
         row = cur.fetchone()
@@ -142,7 +142,7 @@ def handler(event: dict, context) -> dict:
         if not row:
             return err(401, "Сессия истекла")
 
-        return ok({"user": {"id": row[0], "name": row[1], "email": row[2], "city": row[3], "phone": row[4], "about": row[5]}})
+        return ok({"user": {"id": row[0], "name": row[1], "email": row[2], "city": row[3], "phone": row[4], "about": row[5], "avatar_url": row[6]}})
 
     # --- update: обновление профиля ---
     if action == "update":
@@ -171,14 +171,14 @@ def handler(event: dict, context) -> dict:
             return err(400, "Имя не может быть пустым")
 
         cur.execute(
-            f"UPDATE {SCHEMA}.users SET name = %s, city = %s, phone = %s, about = %s WHERE id = %s RETURNING id, name, email, city, phone, about",
+            f"UPDATE {SCHEMA}.users SET name = %s, city = %s, phone = %s, about = %s WHERE id = %s RETURNING id, name, email, city, phone, about, avatar_url",
             (name, city or None, phone or None, about or None, user_id)
         )
         updated = cur.fetchone()
         conn.commit()
         conn.close()
 
-        return ok({"user": {"id": updated[0], "name": updated[1], "email": updated[2], "city": updated[3], "phone": updated[4], "about": updated[5]}})
+        return ok({"user": {"id": updated[0], "name": updated[1], "email": updated[2], "city": updated[3], "phone": updated[4], "about": updated[5], "avatar_url": updated[6]}})
 
     # --- logout ---
     if action == "logout":

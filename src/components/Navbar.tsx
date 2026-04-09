@@ -203,10 +203,11 @@ export default function Navbar({
                   onClick={() => handleNav("profile")}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-muted/60 transition-colors"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center">
-                    <span className="text-white font-bold text-xs">
-                      {user.name.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="w-7 h-7 rounded-lg overflow-hidden bg-gradient-to-br from-violet-600 to-cyan-500 flex items-center justify-center shrink-0">
+                    {user.avatar_url
+                      ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
+                      : <span className="text-white font-bold text-xs">{user.name.charAt(0).toUpperCase()}</span>
+                    }
                   </div>
                   <span className="hidden sm:block text-sm font-medium truncate max-w-24">
                     {user.name.split(" ")[0]}
