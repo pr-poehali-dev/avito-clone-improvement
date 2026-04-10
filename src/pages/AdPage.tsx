@@ -9,6 +9,8 @@ import ShareButton from "@/components/ads/ShareButton";
 import ViewStatsChart from "@/components/ads/ViewStatsChart";
 import PriceOfferForm from "@/components/ads/PriceOfferForm";
 import ReportButton from "@/components/ads/ReportButton";
+import SimilarAds from "@/components/ads/SimilarAds";
+import PriceHistory from "@/components/ads/PriceHistory";
 
 type AdFull = AdFullType;
 
@@ -264,10 +266,16 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
         </div>
       )}
 
+      {/* История цены */}
+      <PriceHistory adId={ad.id} currentPrice={ad.price} />
+
       {/* Статистика просмотров — только для автора */}
       {user?.id === ad.user_id && (
         <ViewStatsChart adId={ad.id} />
       )}
+
+      {/* Похожие объявления */}
+      <SimilarAds adId={ad.id} category={ad.category} onNavigate={onNavigate} />
 
       {/* Пожаловаться — для всех кроме автора */}
       {user?.id !== ad.user_id && (

@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import MediaUploader, { MediaItem } from "@/components/MediaUploader";
 import { categories, subcategories } from "@/data/mockData";
 import CitySelect from "@/components/CitySelect";
+import { getTemplates, saveTemplate, deleteTemplate } from "@/lib/adsApi";
 
 interface FormData {
   title: string;
@@ -15,6 +17,8 @@ interface FormData {
   bargain: string;
   exchange: string;
 }
+
+interface Template { id: number; name: string; data: Record<string, string>; created_at: string; }
 
 interface AdCreateFormProps {
   formData: FormData;
@@ -41,10 +45,73 @@ export default function AdCreateForm({
   onCancel,
 }: AdCreateFormProps) {
   const availableSubcats = formData.category ? (subcategories[formData.category] || []) : [];
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [savingTpl, setSavingTpl] = useState(false);
+  const [tplName, setTplName] = useState("");
+  const [showSaveTpl, setShowSaveTpl] = useState(false);
+
+  useEffect(() => {
+    getTemplates().then(r => setTemplates(r.templates)).catch(() => {});
+  }, []);
+
+  const handleApplyTemplate = (tpl: Template) => {
+    Object.entries(tpl.data).forEach(([k, v]) => onFieldChange(k, v));
+    setShowTemplates(false);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!tplName.trim()) return;
+    setSavingTpl(true);
+    try {
+      const data: Record<string, string> = {
+        title: formData.title, description: formData.description, price: formData.price,
+        category: formData.category, subcategory: formData.subcategory, city: formData.city,
+        condition: formData.condition, quantity: formData.quantity,
+        bargain: formData.bargain, exchange: formData.exchange,
+      };
+      await saveTemplate(tplName.trim(), data);
+      const r = await getTemplates();
+      setTemplates(r.templates);
+      setShowSaveTpl(false);
+      setTplName("");
+    } catch (e) { console.error(e); }
+    setSavingTpl(false);
+  };
+
+  const handleDeleteTemplate = async (id: number) => {
+    await deleteTemplate(id).catch(() => {});
+    setTemplates(t => t.filter(x => x.id !== id));
+  };
 
   return (
     <form onSubmit={onSubmit} className="glass-card rounded-2xl p-6 animate-fade-in border-2 border-violet-200">
-      <h2 className="font-display text-xl font-bold mb-5 gradient-text">Создать объявление</h2>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="font-display text-xl font-bold gradient-text">Создать объявление</h2>
+        {templates.length > 0 && (
+          <div className="relative">
+            <button type="button" onClick={() => setShowTemplates(!showTemplates)}
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-violet-200 text-violet-700 rounded-xl text-xs font-semibold hover:bg-violet-50 transition-colors">
+              <Icon name="BookOpen" size={13} />
+              Шаблоны ({templates.length})
+            </button>
+            {showTemplates && (
+              <div className="absolute right-0 top-full mt-1 w-60 bg-white border border-border rounded-xl shadow-xl z-20 py-1 animate-fade-in">
+                {templates.map(t => (
+                  <div key={t.id} className="flex items-center gap-1 px-3 py-2 hover:bg-muted/40 group">
+                    <button type="button" onClick={() => handleApplyTemplate(t)}
+                      className="flex-1 text-left text-sm font-medium truncate">{t.name}</button>
+                    <button type="button" onClick={() => handleDeleteTemplate(t.id)}
+                      className="opacity-0 group-hover:opacity-100 text-rose-400 hover:text-rose-600 transition-all">
+                      <Icon name="Trash2" size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {/* Media */}
@@ -204,7 +271,34 @@ export default function AdCreateForm({
         </div>
       )}
 
-      <div className="flex gap-3 mt-5">
+      {/* Сохранить как шаблон */}
+      {showSaveTpl ? (
+        <div className="mt-4 flex gap-2 items-center p-3 bg-violet-50 border border-violet-200 rounded-xl animate-fade-in">
+          <input
+            type="text"
+            value={tplName}
+            onChange={e => setTplName(e.target.value)}
+            placeholder="Название шаблона..."
+            className="flex-1 border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-violet-400 bg-white"
+          />
+          <button type="button" onClick={handleSaveTemplate} disabled={savingTpl}
+            className="px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-semibold hover:bg-violet-700 disabled:opacity-60">
+            {savingTpl ? "..." : "Сохранить"}
+          </button>
+          <button type="button" onClick={() => setShowSaveTpl(false)}
+            className="p-1.5 text-muted-foreground hover:text-foreground">
+            <Icon name="X" size={14} />
+          </button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setShowSaveTpl(true)}
+          className="mt-3 flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-800 transition-colors">
+          <Icon name="BookmarkPlus" size={13} />
+          Сохранить как шаблон
+        </button>
+      )}
+
+      <div className="flex gap-3 mt-4">
         <button
           type="submit"
           disabled={saving}

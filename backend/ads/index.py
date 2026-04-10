@@ -902,4 +902,114 @@ def handler(event: dict, context) -> dict:
         subs = [{"id": r[0], "type": r[1], "value": r[2], "created_at": str(r[3])} for r in rows]
         return ok({"subscriptions": subs})
 
+    # --- similar: похожие объявления той же категории ---
+    if action == "similar":
+        ad_id = qs.get("ad_id") or body.get("ad_id")
+        if not ad_id:
+            return err(400, "Укажите ad_id")
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(f"SELECT category, city, price FROM {SCHEMA}.ads WHERE id = %s", (int(ad_id),))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return ok({"ads": []})
+        cat, city, price = row
+        limit = int(qs.get("limit") or 6)
+        # Похожие: та же категория, близкая цена, не это же объявление
+        cur.execute(f"""
+            SELECT a.id, a.title, a.price, a.city, a.category, a.views,
+                   a.image_url, a.created_at, u.name as seller_name, a.bargain, a.exchange
+            FROM {SCHEMA}.ads a
+            JOIN {SCHEMA}.users u ON u.id = a.user_id
+            WHERE a.status = 'active'
+              AND a.category = %s
+              AND a.id != %s
+            ORDER BY ABS(a.price - %s) ASC, a.created_at DESC
+            LIMIT %s
+        """, (cat, int(ad_id), price or 0, limit))
+        rows = cur.fetchall()
+        conn.close()
+        ads = [{"id": r[0], "title": r[1], "price": r[2], "city": r[3],
+                "category": r[4], "views": r[5], "image_url": r[6],
+                "created_at": str(r[7]), "seller_name": r[8],
+                "bargain": r[9], "exchange": r[10]} for r in rows]
+        return ok({"ads": ads})
+
+    # --- price_history: история изменения цены объявления ---
+    if action == "price_history":
+        ad_id = qs.get("ad_id") or body.get("ad_id")
+        if not ad_id:
+            return err(400, "Укажите ad_id")
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT price, changed_at FROM {SCHEMA}.price_history
+            WHERE ad_id = %s ORDER BY changed_at ASC
+        """, (int(ad_id),))
+        rows = cur.fetchall()
+        conn.close()
+        history = [{"price": r[0], "changed_at": str(r[1])} for r in rows]
+        return ok({"history": history})
+
+    # --- templates_list: шаблоны объявлений пользователя ---
+    if action == "templates_list":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        cur = conn.cursor()
+        cur.execute(f"SELECT id, name, data, created_at FROM {SCHEMA}.ad_templates WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
+        rows = cur.fetchall()
+        conn.close()
+        import json as _json
+        templates = [{"id": r[0], "name": r[1], "data": r[2], "created_at": str(r[3])} for r in rows]
+        return ok({"templates": templates})
+
+    # --- templates_save: сохранить шаблон ---
+    if action == "templates_save":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        name = (body.get("name") or "Мой шаблон").strip()[:100]
+        data = body.get("data") or {}
+        cur = conn.cursor()
+        cur.execute(f"SELECT COUNT(*) FROM {SCHEMA}.ad_templates WHERE user_id = %s", (user_id,))
+        cnt = cur.fetchone()[0]
+        if cnt >= 10:
+            conn.close()
+            return err(400, "Максимум 10 шаблонов")
+        cur.execute(f"INSERT INTO {SCHEMA}.ad_templates (user_id, name, data) VALUES (%s, %s, %s) RETURNING id", (user_id, name, _json.dumps(data)))
+        new_id = cur.fetchone()[0]
+        conn.commit()
+        conn.close()
+        return ok({"id": new_id})
+
+    # --- templates_delete: удалить шаблон ---
+    if action == "templates_delete":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        tpl_id = body.get("id")
+        if not tpl_id:
+            conn.close()
+            return err(400, "Укажите id")
+        cur = conn.cursor()
+        cur.execute(f"UPDATE {SCHEMA}.ad_templates SET id = id WHERE id = %s AND user_id = %s", (int(tpl_id), user_id))
+        cur.execute(f"DELETE FROM {SCHEMA}.ad_templates WHERE id = %s AND user_id = %s", (int(tpl_id), user_id))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
     return err(400, "Неизвестное действие")

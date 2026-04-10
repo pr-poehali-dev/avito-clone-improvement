@@ -189,6 +189,26 @@ export async function getMySubscriptions(): Promise<{ subscriptions: Subscriptio
   return call("my_subscriptions");
 }
 
+export async function getSimilarAds(adId: number, limit = 6): Promise<{ ads: Ad[] }> {
+  return call("similar", { ad_id: String(adId), limit: String(limit) });
+}
+
+export async function getPriceHistory(adId: number): Promise<{ history: Array<{ price: number; changed_at: string }> }> {
+  return call("price_history", { ad_id: String(adId) });
+}
+
+export async function getTemplates(): Promise<{ templates: Array<{ id: number; name: string; data: Record<string, string>; created_at: string }> }> {
+  return call("templates_list");
+}
+
+export async function saveTemplate(name: string, data: Record<string, string>): Promise<{ id: number }> {
+  return call("templates_save", {}, { name, data });
+}
+
+export async function deleteTemplate(id: number): Promise<{ ok: boolean }> {
+  return call("templates_delete", {}, { id });
+}
+
 export function formatTimeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const diff = Date.now() - date.getTime();
