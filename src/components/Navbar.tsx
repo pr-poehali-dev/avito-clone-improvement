@@ -243,7 +243,7 @@ export default function Navbar({
           ref={searchPanelRef}
           className="hidden md:block absolute left-0 right-0 top-full z-50 bg-white border-b border-border shadow-xl animate-fade-in"
         >
-          <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="max-w-4xl mx-auto px-6 py-2">
             {/* Main row */}
             <form
               onSubmit={e => {
@@ -254,25 +254,34 @@ export default function Navbar({
                 setShowFilters(false);
               }}
             >
-              <div className="flex gap-2 bg-muted/40 rounded-2xl border border-border p-2">
-                <div className="flex items-center gap-2 px-3 border-r border-border text-sm text-muted-foreground shrink-0">
-                  <Icon name="MapPin" size={15} className="text-violet-500 shrink-0" />
-                  <CitySelect value={searchCity} onChange={setSearchCity} compact />
+              <div className="flex gap-1.5 bg-muted/40 rounded-xl border border-border px-1.5 py-1.5 items-center">
+                {/* City selector — native select для надёжности внутри navbar */}
+                <div className="flex items-center gap-1.5 pl-2 pr-2 border-r border-border shrink-0">
+                  <Icon name="MapPin" size={13} className="text-violet-500 shrink-0" />
+                  <select
+                    value={searchCity}
+                    onChange={e => setSearchCity(e.target.value)}
+                    className="text-sm outline-none bg-transparent text-muted-foreground cursor-pointer max-w-[120px]"
+                  >
+                    {["Все города","Москва","Санкт-Петербург","Новосибирск","Екатеринбург","Казань","Нижний Новгород","Челябинск","Самара","Омск","Ростов-на-Дону","Уфа","Красноярск","Воронеж","Пермь","Волгоград","Краснодар","Саратов","Тюмень","Тольятти","Ижевск","Барнаул","Иркутск","Хабаровск","Ярославль","Владивосток","Томск","Сочи","Пятигорск","Ставрополь","Белгород","Владимир","Калининград","Тула","Рязань","Пенза","Астрахань","Липецк","Тверь","Киров","Чебоксары","Брянск","Курск","Иваново"].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Что ищете? Телефон, машина, квартира..."
-                  className="flex-1 outline-none bg-transparent text-sm placeholder:text-muted-foreground"
+                  placeholder="Что ищете?"
+                  className="flex-1 outline-none bg-transparent text-sm placeholder:text-muted-foreground min-w-0"
                 />
                 <button
                   type="button"
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${showFilters ? "bg-violet-100 text-violet-700" : "text-muted-foreground hover:bg-muted/60"}`}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${showFilters ? "bg-violet-100 text-violet-700" : "text-muted-foreground hover:bg-muted/60"}`}
                 >
-                  <Icon name="SlidersHorizontal" size={14} />
+                  <Icon name="SlidersHorizontal" size={13} />
                   Фильтры
                   {(searchCategory || searchMinPrice || searchMaxPrice) && (
                     <span className="w-1.5 h-1.5 bg-violet-500 rounded-full" />
@@ -280,57 +289,57 @@ export default function Navbar({
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity shadow-md whitespace-nowrap"
+                  className="flex items-center gap-1 px-4 py-1.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity shadow-sm whitespace-nowrap"
                 >
-                  <Icon name="Search" size={15} />
+                  <Icon name="Search" size={14} />
                   Найти
                 </button>
                 <button
                   type="button"
                   onClick={() => { setSearchOpen(false); setShowFilters(false); }}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-muted/60 text-muted-foreground"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted/60 text-muted-foreground shrink-0"
                 >
-                  <Icon name="X" size={16} />
+                  <Icon name="X" size={14} />
                 </button>
               </div>
 
               {/* Filters */}
               {showFilters && (
-                <div className="mt-3 p-4 bg-muted/30 rounded-2xl border border-border animate-fade-in">
-                  <div className="grid grid-cols-3 gap-4">
+                <div className="mt-2 p-3 bg-muted/30 rounded-xl border border-border animate-fade-in">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Категория</label>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Категория</label>
                       <select
                         value={searchCategory}
                         onChange={e => setSearchCategory(e.target.value)}
-                        className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-violet-400 transition-colors"
+                        className="w-full border border-border rounded-lg px-2 py-1.5 text-sm bg-white outline-none focus:border-violet-400 transition-colors"
                       >
                         <option value="">Все категории</option>
                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Цена от, ₽</label>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Цена от, ₽</label>
                       <input
                         type="number"
                         value={searchMinPrice}
                         onChange={e => setSearchMinPrice(e.target.value)}
                         placeholder="0"
-                        className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-violet-400 transition-colors"
+                        className="w-full border border-border rounded-lg px-2 py-1.5 text-sm bg-white outline-none focus:border-violet-400 transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Цена до, ₽</label>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Цена до, ₽</label>
                       <input
                         type="number"
                         value={searchMaxPrice}
                         onChange={e => setSearchMaxPrice(e.target.value)}
                         placeholder="Любая"
-                        className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-white outline-none focus:border-violet-400 transition-colors"
+                        className="w-full border border-border rounded-lg px-2 py-1.5 text-sm bg-white outline-none focus:border-violet-400 transition-colors"
                       />
                     </div>
                   </div>
-                  <div className="flex justify-end mt-3">
+                  <div className="flex justify-end mt-2">
                     <button
                       type="button"
                       onClick={() => { setSearchCategory(""); setSearchMinPrice(""); setSearchMaxPrice(""); setSearchCity("Все города"); }}

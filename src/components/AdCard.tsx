@@ -21,6 +21,8 @@ export interface AdCardData {
   status?: string;
   week_views?: number;
   score?: number;
+  bargain?: boolean;
+  exchange?: boolean;
 }
 
 interface AdCardProps {
@@ -122,7 +124,11 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavo
 
       {/* Content */}
       <div className="p-4">
-        <div className="text-xl font-bold text-primary mb-1">{formatPrice(ad.price)}</div>
+        <div className="flex items-baseline gap-2 mb-1">
+          <div className="text-xl font-bold text-primary">{formatPrice(ad.price)}</div>
+          {ad.bargain && <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-1.5 py-0.5 rounded-full">Торг</span>}
+          {ad.exchange && <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-1.5 py-0.5 rounded-full">Обмен</span>}
+        </div>
         <h3 className="font-semibold text-foreground text-sm line-clamp-2 mb-3 leading-snug">{ad.title}</h3>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">

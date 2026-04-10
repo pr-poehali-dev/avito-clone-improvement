@@ -182,6 +182,8 @@ def handler(event: dict, context) -> dict:
         image_url = (body.get("image_url") or "").strip() or None
         condition = (body.get("condition") or "used").strip()
         quantity = int(body.get("quantity") or 1)
+        bargain = bool(body.get("bargain") or False)
+        exchange = bool(body.get("exchange") or False)
 
         if not title or not category:
             conn.close()
@@ -199,13 +201,16 @@ def handler(event: dict, context) -> dict:
 
         cur = conn.cursor()
         cur.execute(f"""
-            INSERT INTO {SCHEMA}.ads (user_id, title, description, price, category, subcategory, city, image_url, status, condition, quantity)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s)
+            INSERT INTO {SCHEMA}.ads (user_id, title, description, price, category, subcategory, city, image_url, status, condition, quantity, bargain, exchange)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s, %s)
             RETURNING id, title, price, city, category, views, image_url, created_at
         """, (user_id, title, description, price, category, subcategory, city,
-              media_urls[0]["url"] if media_urls else image_url, condition, quantity))
+              media_urls[0]["url"] if media_urls else image_url, condition, quantity, bargain, exchange))
         row = cur.fetchone()
         ad_id = row[0]
+
+        # Записываем начальную цену в историю
+        cur.execute(f"INSERT INTO {SCHEMA}.price_history (ad_id, price) VALUES (%s, %s)", (ad_id, price))
 
         # Сохраняем все медиафайлы
         for i, m in enumerate(media_urls[:11]):  # max 10 фото + 1 видео
@@ -292,7 +297,8 @@ def handler(event: dict, context) -> dict:
                    a.views, a.image_url, a.created_at, a.status,
                    u.id as user_id, u.name as seller_name,
                    a.subcategory, a.condition, a.quantity,
-                   u.phone as seller_phone, u.avatar_url as seller_avatar
+                   u.phone as seller_phone, u.avatar_url as seller_avatar,
+                   a.bargain, a.exchange
             FROM {SCHEMA}.ads a
             JOIN {SCHEMA}.users u ON u.id = a.user_id
             WHERE a.id = %s
@@ -336,6 +342,7 @@ def handler(event: dict, context) -> dict:
             "status": row[9], "user_id": row[10], "seller_name": row[11],
             "subcategory": row[12], "condition": row[13], "quantity": row[14],
             "seller_phone": row[15], "seller_avatar": row[16],
+            "bargain": row[17], "exchange": row[18],
             "media": media if media else ([{"url": row[7], "type": "photo"}] if row[7] else []),
         }
         return ok({"ad": ad})

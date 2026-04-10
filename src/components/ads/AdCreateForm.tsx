@@ -12,6 +12,8 @@ interface FormData {
   city: string;
   condition: string;
   quantity: string;
+  bargain: string;
+  exchange: string;
 }
 
 interface AdCreateFormProps {
@@ -101,6 +103,26 @@ export default function AdCreateForm({
             placeholder="0"
             className={inputCls}
           />
+          <div className="flex gap-4 mt-2">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={formData.bargain === "true"}
+                onChange={e => onFieldChange("bargain", String(e.target.checked))}
+                className="w-4 h-4 rounded accent-violet-600"
+              />
+              <span className="text-sm text-muted-foreground">Торг уместен</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={formData.exchange === "true"}
+                onChange={e => onFieldChange("exchange", String(e.target.checked))}
+                className="w-4 h-4 rounded accent-violet-600"
+              />
+              <span className="text-sm text-muted-foreground">Возможен обмен</span>
+            </label>
+          </div>
         </div>
 
         {/* Город */}

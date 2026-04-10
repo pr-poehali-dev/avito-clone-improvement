@@ -11,9 +11,10 @@ interface AdminUsersTabProps {
   onSearch: (v: string) => void;
   onBan: (userId: number, banned: boolean) => void;
   onMakeAdmin: (userId: number) => void;
+  onViewUser?: (userId: number) => void;
 }
 
-export default function AdminUsersTab({ users, search, onSearch, onBan, onMakeAdmin }: AdminUsersTabProps) {
+export default function AdminUsersTab({ users, search, onSearch, onBan, onMakeAdmin, onViewUser }: AdminUsersTabProps) {
   return (
     <div className="space-y-4">
       <input
@@ -57,6 +58,13 @@ export default function AdminUsersTab({ users, search, onSearch, onBan, onMakeAd
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => onViewUser?.(u.id)}
+                      title="Открыть профиль"
+                      className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors"
+                    >
+                      <Icon name="ExternalLink" size={14} />
+                    </button>
                     <button
                       onClick={() => onBan(u.id, !u.is_banned)}
                       title={u.is_banned ? "Разблокировать" : "Заблокировать"}

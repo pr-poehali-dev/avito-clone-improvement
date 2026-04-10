@@ -6,6 +6,7 @@ action: send | inbox | thread | mark_read | reviews_list | reviews_create
 import json
 import os
 import psycopg2
+import urllib.request
 
 SCHEMA = os.environ.get("MAIN_DB_SCHEMA", "t_p16851207_avito_clone_improvem")
 CORS = {
@@ -18,6 +19,50 @@ CORS = {
 
 def get_conn():
     return psycopg2.connect(os.environ["DATABASE_URL"])
+
+
+def send_email_notification(to_email: str, to_name: str, sender_name: str, text: str, ad_title: str | None = None):
+    """Отправляет email-уведомление о новом сообщении через Resend."""
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    if not api_key:
+        return
+    subject = f"Новое сообщение от {sender_name}"
+    ad_line = f"<p style='color:#888;font-size:13px;'>По объявлению: <b>{ad_title}</b></p>" if ad_title else ""
+    html = f"""
+    <div style='font-family:sans-serif;max-width:500px;margin:0 auto;'>
+      <div style='background:linear-gradient(135deg,#7c3aed,#06b6d4);padding:20px 24px;border-radius:12px 12px 0 0;'>
+        <h2 style='color:white;margin:0;font-size:18px;'>💬 Новое сообщение</h2>
+      </div>
+      <div style='background:#f9fafb;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;'>
+        <p style='margin:0 0 8px;'>Привет, <b>{to_name}</b>!</p>
+        <p style='margin:0 0 16px;color:#6b7280;'>Тебе написал <b>{sender_name}</b>:</p>
+        {ad_line}
+        <div style='background:white;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin:16px 0;font-size:15px;'>
+          {text[:300]}{'...' if len(text) > 300 else ''}
+        </div>
+        <a href='https://poehali.dev' style='display:inline-block;background:linear-gradient(135deg,#7c3aed,#06b6d4);color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;'>
+          Ответить →
+        </a>
+        <p style='margin:16px 0 0;color:#9ca3af;font-size:12px;'>Это автоматическое уведомление. Отвечать на это письмо не нужно.</p>
+      </div>
+    </div>
+    """
+    payload = json.dumps({
+        "from": "OMO <noreply@poehali.dev>",
+        "to": [to_email],
+        "subject": subject,
+        "html": html,
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        urllib.request.urlopen(req, timeout=5)
+    except Exception:
+        pass
 
 
 def ok(data):
@@ -83,14 +128,21 @@ def handler(event: dict, context) -> dict:
         """, (user_id, int(receiver_id), ad_id, text))
         row = cur.fetchone()
 
-        # Уведомление получателю о новом сообщении
+        # Данные отправителя и получателя
         cur.execute(f"SELECT name FROM {SCHEMA}.users WHERE id = %s", (user_id,))
         sender_name = (cur.fetchone() or ["Пользователь"])[0]
+        cur.execute(f"SELECT name, email FROM {SCHEMA}.users WHERE id = %s", (int(receiver_id),))
+        recv_row = cur.fetchone()
+        receiver_name = recv_row[0] if recv_row else "Пользователь"
+        receiver_email = recv_row[1] if recv_row else None
+
         ad_title = None
         if ad_id:
             cur.execute(f"SELECT title FROM {SCHEMA}.ads WHERE id = %s", (int(ad_id),))
             ad_row = cur.fetchone()
             ad_title = ad_row[0] if ad_row else None
+
+        # In-app уведомление
         notif_text = f"{sender_name}: {text[:80]}{'...' if len(text) > 80 else ''}"
         if ad_title:
             notif_text = f"{sender_name} по объявлению «{ad_title[:40]}»: {text[:60]}"
@@ -101,6 +153,11 @@ def handler(event: dict, context) -> dict:
 
         conn.commit()
         conn.close()
+
+        # Email-уведомление (если первое сообщение в этом диалоге за последние 2 часа)
+        if receiver_email:
+            send_email_notification(receiver_email, receiver_name, sender_name, text, ad_title)
+
         return ok({"id": row[0], "created_at": str(row[1])})
 
     # --- inbox: список диалогов ---

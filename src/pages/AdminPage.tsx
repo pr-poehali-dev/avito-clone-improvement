@@ -14,7 +14,11 @@ interface Stats {
 
 type Tab = "stats" | "users" | "ads" | "activity" | "reports";
 
-export default function AdminPage() {
+interface AdminPageProps {
+  onNavigate?: (page: string, param?: number) => void;
+}
+
+export default function AdminPage({ onNavigate }: AdminPageProps) {
   const [tab, setTab] = useState<Tab>("stats");
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -189,6 +193,7 @@ export default function AdminPage() {
           onSearch={handleSearch}
           onBan={handleBan}
           onMakeAdmin={handleMakeAdmin}
+          onViewUser={onNavigate ? (userId) => onNavigate("reviews", userId) : undefined}
         />
       )}
 
@@ -202,6 +207,8 @@ export default function AdminPage() {
           onApprove={handleApprove}
           onDelete={handleDeleteAd}
           onReject={(ad) => { setRejectModal(ad); setRejectComment(""); }}
+          onViewAd={onNavigate ? (adId) => onNavigate("ad", adId) : undefined}
+          onViewUser={onNavigate ? (userId) => onNavigate("reviews", userId) : undefined}
         />
       )}
 

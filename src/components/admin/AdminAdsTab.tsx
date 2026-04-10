@@ -16,6 +16,8 @@ interface AdminAdsTabProps {
   onApprove: (adId: number) => void;
   onDelete: (adId: number) => void;
   onReject: (ad: { id: number; title: string }) => void;
+  onViewAd?: (adId: number) => void;
+  onViewUser?: (userId: number) => void;
 }
 
 const statusLabels: Record<string, { label: string; cls: string }> = {
@@ -27,7 +29,7 @@ const statusLabels: Record<string, { label: string; cls: string }> = {
   deleted: { label: "Удалено", cls: "bg-rose-100 text-rose-600" },
 };
 
-export default function AdminAdsTab({ ads, search, statusFilter, onSearch, onStatusFilter, onApprove, onDelete, onReject }: AdminAdsTabProps) {
+export default function AdminAdsTab({ ads, search, statusFilter, onSearch, onStatusFilter, onApprove, onDelete, onReject, onViewAd, onViewUser }: AdminAdsTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
@@ -85,10 +87,24 @@ export default function AdminAdsTab({ ads, search, statusFilter, onSearch, onSta
               return (
                 <tr key={a.id} className="border-t border-border/50 hover:bg-muted/20 transition-colors">
                   <td className="px-4 py-3">
-                    <div className="font-medium line-clamp-1 max-w-[200px]">{a.title}</div>
+                    <button
+                      onClick={() => onViewAd?.(a.id)}
+                      className="font-medium line-clamp-1 max-w-[200px] text-left hover:text-violet-600 transition-colors"
+                      title="Открыть объявление"
+                    >
+                      {a.title}
+                    </button>
                     <div className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString("ru-RU")}</div>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{a.seller}</td>
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    <button
+                      onClick={() => onViewUser?.(a.user_id)}
+                      className="text-muted-foreground hover:text-violet-600 transition-colors"
+                      title="Открыть профиль"
+                    >
+                      {a.seller}
+                    </button>
+                  </td>
                   <td className="px-4 py-3 text-right font-semibold hidden md:table-cell">{formatPrice(a.price)}</td>
                   <td className="px-4 py-3 text-center">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${sl.cls}`}>
@@ -97,6 +113,13 @@ export default function AdminAdsTab({ ads, search, statusFilter, onSearch, onSta
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => onViewAd?.(a.id)}
+                        title="Открыть объявление"
+                        className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors"
+                      >
+                        <Icon name="ExternalLink" size={14} />
+                      </button>
                       {a.status === "pending" && (
                         <>
                           <button

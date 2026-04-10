@@ -77,6 +77,8 @@ export async function createAd(data: {
   media_urls?: Array<{ url: string; type: string }>;
   condition?: string;
   quantity?: number;
+  bargain?: boolean;
+  exchange?: boolean;
 }): Promise<{ ad: Ad }> {
   return call("create", {}, data);
 }
@@ -95,6 +97,8 @@ export interface AdFull {
   quantity?: number;
   seller_phone?: string | null;
   seller_avatar?: string | null;
+  bargain?: boolean;
+  exchange?: boolean;
 }
 
 export async function deleteAd(id: number): Promise<void> {

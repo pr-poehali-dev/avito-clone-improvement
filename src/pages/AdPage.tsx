@@ -105,7 +105,11 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
         <div className="lg:col-span-2 space-y-4">
           <div className="glass-card rounded-2xl p-5 space-y-4">
             <div>
-              <div className="text-3xl font-bold text-primary mb-1">{formatPrice(ad.price)}</div>
+              <div className="flex items-baseline gap-2 mb-1">
+                <div className="text-3xl font-bold text-primary">{formatPrice(ad.price)}</div>
+                {ad.bargain && <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">Торг</span>}
+                {ad.exchange && <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">Обмен</span>}
+              </div>
               <h1 className="font-display text-xl font-bold leading-snug">{ad.title}</h1>
             </div>
 

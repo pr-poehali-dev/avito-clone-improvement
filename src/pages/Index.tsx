@@ -134,7 +134,7 @@ export default function Index() {
       case "messages": return <MessagesPage user={user} onAuthClick={() => setShowAuth(true)} />;
       case "profile": return <ProfilePage user={user} onLogout={handleLogout} onNavigate={handleNavigate} onUserUpdate={setUser} />;
       case "about": return <AboutPage />;
-      case "admin": return <AdminPage />;
+      case "admin": return <AdminPage onNavigate={(page, param) => { if (param) { setPageParam(param); } handleNavigate(page); }} />;
       case "history": return <HistoryPage onNavigate={handleNavigate} />;
       case "subscriptions": return <SubscriptionsPage onNavigate={handleNavigate} />;
       case "ad": return pageParam ? (
