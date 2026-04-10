@@ -9,9 +9,10 @@ interface ReviewsPageProps {
   onBack: () => void;
   currentUser: User | null;
   onAuthClick: () => void;
+  onNavigate?: (page: string) => void;
 }
 
-export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }: ReviewsPageProps) {
+export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick, onNavigate }: ReviewsPageProps) {
   const [data, setData] = useState<Awaited<ReturnType<typeof getReviews>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -266,8 +267,19 @@ export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }
                     </div>
                     <div className="flex gap-0.5">{stars(r.rating, 14)}</div>
                   </div>
-                  {/* Название объявления — всегда показываем */}
-                  {r.ad_title && (
+                  {/* Название объявления — кликабельное */}
+                  {r.ad_title && r.ad_id && (
+                    <button
+                      onClick={() => onNavigate?.(`ad:${r.ad_id}`)}
+                      className="mt-3 w-full flex items-center gap-2 text-xs text-violet-700 bg-violet-50 border border-violet-100 hover:bg-violet-100 hover:border-violet-300 transition-colors rounded-lg px-3 py-2 group"
+                    >
+                      <Icon name="ShoppingBag" size={12} className="shrink-0" />
+                      <span className="font-medium shrink-0">Объявление:</span>
+                      <span className="truncate flex-1 text-left">{r.ad_title}</span>
+                      <Icon name="ExternalLink" size={11} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  )}
+                  {r.ad_title && !r.ad_id && (
                     <div className="mt-3 flex items-center gap-1.5 text-xs text-violet-700 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">
                       <Icon name="ShoppingBag" size={12} className="shrink-0" />
                       <span className="font-medium">Объявление:</span>

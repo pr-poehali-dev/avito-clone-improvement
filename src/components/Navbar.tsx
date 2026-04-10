@@ -187,7 +187,7 @@ export default function Navbar({
             className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent hover:border-border"
           >
             <Icon name="Search" size={15} />
-            <span className="text-muted-foreground/50 min-w-32">Поиск по объявлениям...</span>
+            <span className="text-muted-foreground/50 min-w-20">Поиск</span>
             <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-muted rounded text-[10px] text-muted-foreground/70 font-mono">⌘K</kbd>
           </button>
 

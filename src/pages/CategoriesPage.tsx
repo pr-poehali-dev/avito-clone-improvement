@@ -34,10 +34,19 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
     };
   }, []);
 
+  const getUserCity = () => localStorage.getItem("om_user_city") || "";
+
   const loadAds = async (category?: string, sub?: string, extra: ListFilters = {}) => {
     setLoading(true);
     try {
-      const res = await listAds({ category, subcategory: sub || undefined, ...extra });
+      const userCity = getUserCity();
+      const res = await listAds({
+        category,
+        subcategory: sub || undefined,
+        ...extra,
+        // Передаём город только если в extra нет явного фильтра по городу
+        ...(!extra.city && userCity ? { user_city: userCity } : {}),
+      });
       setAds(res.ads);
       setTotal(res.total);
     } catch {

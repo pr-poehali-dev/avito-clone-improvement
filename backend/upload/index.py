@@ -101,9 +101,14 @@ def handler(event: dict, context) -> dict:
     ext = ALLOWED_TYPES[mime]
 
     if action == "avatar":
-        key = f"avatars/{user_id}.{ext}"
+        # Уникальный ключ при каждой загрузке — CDN не кэширует старое фото
+        ts = uuid.uuid4().hex[:8]
+        key = f"avatars/{user_id}_{ts}.{ext}"
         s3 = get_s3()
-        s3.put_object(Bucket=BUCKET, Key=key, Body=image_bytes, ContentType=mime)
+        s3.put_object(
+            Bucket=BUCKET, Key=key, Body=image_bytes, ContentType=mime,
+            CacheControl="no-cache, no-store, must-revalidate",
+        )
         cdn_url = f"{CDN_BASE}/{key}"
         # Сохраняем avatar_url в профиле пользователя
         conn = psycopg2.connect(os.environ["DATABASE_URL"])

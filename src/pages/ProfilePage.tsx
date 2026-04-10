@@ -128,11 +128,11 @@ export default function ProfilePage({ user, onLogout, onNavigate, onUserUpdate }
     setAvatarUploading(true);
     try {
       const url = await uploadAvatar(file);
-      const withTs = url + "?t=" + Date.now();
-      setAvatarUrl(withTs);
-      if (user && onUserUpdate) onUserUpdate({ ...user, avatar_url: withTs });
-    } catch {
-      // silent
+      // Ключ уже уникальный в S3 — просто используем URL как есть
+      setAvatarUrl(url);
+      if (user && onUserUpdate) onUserUpdate({ ...user, avatar_url: url });
+    } catch (err) {
+      console.error("Avatar upload error:", err);
     } finally {
       setAvatarUploading(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";

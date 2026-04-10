@@ -160,6 +160,7 @@ export default function Index() {
           onBack={() => { setActivePage("home"); setPageParam(null); }}
           currentUser={user}
           onAuthClick={() => setShowAuth(true)}
+          onNavigate={handleNavigate}
         />
       ) : null;
       default: return <HomePage onNavigate={handleNavigate} adImages={{}} onAuthClick={() => setShowAuth(true)} />;

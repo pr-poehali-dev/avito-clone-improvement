@@ -35,7 +35,12 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
   const loadAds = async (f: ListFilters = {}) => {
     setLoading(true);
     try {
-      const res = await listAds(f);
+      const storedCity = localStorage.getItem("om_user_city") || "";
+      const res = await listAds({
+        ...f,
+        // Добавляем user_city только когда нет явного city-фильтра
+        ...(!f.city && storedCity ? { user_city: storedCity } : {}),
+      });
       setAds(res.ads);
       setTotal(res.total);
     } catch {
