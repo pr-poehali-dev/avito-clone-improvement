@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
-import { getInbox, getThread, sendMessage, Dialog, Message } from "@/lib/messagesApi";
+import { getInbox, getThread, sendMessage, Dialog, Message, DialogAd } from "@/lib/messagesApi";
 import { User } from "@/lib/auth";
 import { formatTimeAgo } from "@/lib/adsApi";
+import { formatPrice } from "@/components/AdCard";
 
 function UserAvatar({ name, avatarUrl, size = 11 }: { name: string; avatarUrl?: string | null; size?: number }) {
   const cls = `w-${size} h-${size} rounded-full shrink-0 overflow-hidden bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center`;
@@ -27,6 +28,7 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
   const [selected, setSelected] = useState<Dialog | null>(null);
   const [thread, setThread] = useState<Message[]>([]);
   const [otherAvatar, setOtherAvatar] = useState<string | null>(null);
+  const [dialogAd, setDialogAd] = useState<DialogAd | null>(null);
   const [newMsg, setNewMsg] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -45,10 +47,12 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
 
   const loadThread = async (dialog: Dialog) => {
     setSelected(dialog);
+    setDialogAd(null);
     try {
       const res = await getThread(dialog.other_user_id);
       setThread(res.messages);
       setOtherAvatar(res.other?.avatar_url || dialog.other_avatar || null);
+      setDialogAd(res.dialog_ad || null);
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch {
       setThread([]);
@@ -169,15 +173,36 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
         {/* Chat window */}
         {selected ? (
           <div className="flex-1 flex flex-col glass-card rounded-2xl overflow-hidden animate-fade-in">
-            <div className="flex items-center gap-3 p-4 border-b border-border">
-              <button onClick={() => setSelected(null)} className="lg:hidden mr-1 text-muted-foreground hover:text-foreground">
-                <Icon name="ChevronLeft" size={20} />
-              </button>
-              <UserAvatar name={selected.other_name} avatarUrl={otherAvatar} size={10} />
-              <div>
+            {/* Header */}
+            <div className="border-b border-border">
+              {/* Собеседник */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <button onClick={() => setSelected(null)} className="lg:hidden mr-1 text-muted-foreground hover:text-foreground">
+                  <Icon name="ChevronLeft" size={20} />
+                </button>
+                <UserAvatar name={selected.other_name} avatarUrl={otherAvatar} size={10} />
                 <div className="font-semibold">{selected.other_name}</div>
-                {selected.ad_title && <div className="text-xs text-muted-foreground">Объявление: {selected.ad_title}</div>}
               </div>
+              {/* Карточка товара */}
+              {dialogAd && (
+                <div className="mx-4 mb-3 flex items-center gap-3 p-2.5 bg-muted/40 rounded-xl border border-border/60">
+                  <div className="w-14 h-14 rounded-lg overflow-hidden bg-muted shrink-0">
+                    {dialogAd.image_url
+                      ? <img src={dialogAd.image_url} alt={dialogAd.title} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-muted-foreground mb-0.5">Обсуждаемый товар</div>
+                    <div className="font-semibold text-sm line-clamp-1">{dialogAd.title}</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-sm font-bold text-primary">{formatPrice(dialogAd.price)} ₽</span>
+                      {dialogAd.city && <span className="text-xs text-muted-foreground">{dialogAd.city}</span>}
+                    </div>
+                  </div>
+                  <Icon name="Package" size={16} className="text-muted-foreground shrink-0" />
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3">

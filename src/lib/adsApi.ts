@@ -32,6 +32,7 @@ export interface ListFilters {
   search?: string;
   limit?: number;
   offset?: number;
+  user_id?: string;
 }
 
 async function call(action: string, params: Record<string, string> = {}, body?: object) {
@@ -59,6 +60,7 @@ export async function listAds(filters: ListFilters = {}): Promise<{ ads: Ad[]; t
   if (filters.search) params.search = filters.search;
   if (filters.limit) params.limit = String(filters.limit);
   if (filters.offset) params.offset = String(filters.offset);
+  if (filters.user_id) params.user_id = filters.user_id;
   return call("list", params);
 }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { getReviews, createReview } from "@/lib/messagesApi";
+import { listAds } from "@/lib/adsApi";
 import { User } from "@/lib/auth";
 
 interface ReviewsPageProps {
@@ -19,6 +20,8 @@ export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [hovered, setHovered] = useState(0);
+  const [sellerAds, setSellerAds] = useState<Array<{ id: number; title: string }>>([]);
+  const [selectedAdId, setSelectedAdId] = useState<number | null>(null);
 
   const load = async () => {
     try {
@@ -31,16 +34,30 @@ export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }
     }
   };
 
+  // Загружаем объявления продавца при открытии формы
+  const handleOpenForm = async () => {
+    setShowForm(true);
+    try {
+      const res = await listAds({ user_id: String(userId), limit: 20 });
+      setSellerAds((res.ads || []).map((a: { id: number; title: string }) => ({ id: a.id, title: a.title })));
+    } catch {
+      setSellerAds([]);
+    }
+  };
+
   useEffect(() => { load(); }, [userId]);
+
+  const alreadyReviewed = data?.reviews.some(r => r.author_id === currentUser?.id);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) { onAuthClick(); return; }
+    if (!selectedAdId) { setError("Выберите объявление, по которому оставляете отзыв"); return; }
     setSaving(true);
     setError("");
     try {
-      await createReview({ target_user_id: userId, rating, text });
-      setText(""); setRating(5); setShowForm(false);
+      await createReview({ target_user_id: userId, rating, text, ad_id: selectedAdId });
+      setText(""); setRating(5); setShowForm(false); setSelectedAdId(null);
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Ошибка");
@@ -116,9 +133,14 @@ export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }
           {/* Leave review */}
           {currentUser && currentUser.id !== userId && (
             <div>
-              {!showForm ? (
+              {alreadyReviewed ? (
+                <div className="flex items-center gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-sm text-emerald-700">
+                  <Icon name="CheckCircle" size={16} className="shrink-0" />
+                  Вы уже оставили отзыв этому продавцу
+                </div>
+              ) : !showForm ? (
                 <button
-                  onClick={() => setShowForm(true)}
+                  onClick={handleOpenForm}
                   className="w-full py-3 border-2 border-dashed border-violet-200 hover:border-violet-400 text-violet-600 rounded-2xl font-semibold text-sm transition-all hover:bg-violet-50"
                 >
                   + Оставить отзыв
@@ -126,6 +148,30 @@ export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }
               ) : (
                 <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-5 border-2 border-violet-200 space-y-4 animate-fade-in">
                   <h3 className="font-display text-lg font-bold gradient-text">Оставить отзыв</h3>
+
+                  {/* Выбор объявления */}
+                  <div>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">
+                      По объявлению *
+                    </label>
+                    {sellerAds.length === 0 ? (
+                      <div className="text-sm text-muted-foreground px-3 py-2.5 bg-muted/40 rounded-xl">
+                        У продавца нет активных объявлений
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedAdId ?? ""}
+                        onChange={e => setSelectedAdId(e.target.value ? Number(e.target.value) : null)}
+                        className="w-full border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-white"
+                        required
+                      >
+                        <option value="">Выберите объявление...</option>
+                        {sellerAds.map(a => (
+                          <option key={a.id} value={a.id}>{a.title}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
 
                   {/* Star rating */}
                   <div>
@@ -163,7 +209,7 @@ export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }
                       rows={3}
                       value={text}
                       onChange={e => setText(e.target.value)}
-                      placeholder="Расскажите о своём опыте..."
+                      placeholder="Расскажите о своём опыте сделки..."
                       className="w-full border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all bg-white resize-none"
                     />
                   </div>
@@ -178,7 +224,7 @@ export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }
                   <div className="flex gap-2">
                     <button
                       type="submit"
-                      disabled={saving}
+                      disabled={saving || sellerAds.length === 0}
                       className="flex-1 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl font-bold text-sm hover:opacity-90 disabled:opacity-60 flex items-center justify-center gap-2"
                     >
                       {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Icon name="Send" size={14} />}
@@ -186,7 +232,7 @@ export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowForm(false)}
+                      onClick={() => { setShowForm(false); setSelectedAdId(null); }}
                       className="px-4 py-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:bg-muted/60"
                     >
                       Отмена
@@ -220,13 +266,15 @@ export default function ReviewsPage({ userId, onBack, currentUser, onAuthClick }
                     </div>
                     <div className="flex gap-0.5">{stars(r.rating, 14)}</div>
                   </div>
-                  {r.text && <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{r.text}</p>}
+                  {/* Название объявления — всегда показываем */}
                   {r.ad_title && (
-                    <div className="mt-3 flex items-center gap-1.5 text-xs text-violet-600 bg-violet-50 rounded-lg px-3 py-1.5">
-                      <Icon name="Tag" size={11} />
-                      {r.ad_title}
+                    <div className="mt-3 flex items-center gap-1.5 text-xs text-violet-700 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2">
+                      <Icon name="ShoppingBag" size={12} className="shrink-0" />
+                      <span className="font-medium">Объявление:</span>
+                      <span className="truncate">{r.ad_title}</span>
                     </div>
                   )}
+                  {r.text && <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{r.text}</p>}
                 </div>
               ))
             )}

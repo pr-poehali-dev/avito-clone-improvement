@@ -46,10 +46,19 @@ export interface Message {
 
 export const getInbox = () => call("inbox") as Promise<{ dialogs: Dialog[] }>;
 
+export interface DialogAd {
+  id: number;
+  title: string;
+  image_url: string | null;
+  price: number;
+  city: string | null;
+}
+
 export const getThread = (other_id: number) =>
   call("thread", { other_id: String(other_id) }) as Promise<{
     messages: Message[];
     other: { id: number; name: string; avatar_url?: string | null } | null;
+    dialog_ad: DialogAd | null;
   }>;
 
 export const sendMessage = (receiver_id: number, text: string, ad_id?: number) =>

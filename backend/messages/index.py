@@ -233,6 +233,17 @@ def handler(event: dict, context) -> dict:
         # Инфо о собеседнике
         cur.execute(f"SELECT id, name, avatar_url FROM {SCHEMA}.users WHERE id = %s", (other_id,))
         other = cur.fetchone()
+
+        # Первое объявление диалога (из первого сообщения с ad_id)
+        dialog_ad = None
+        for r in rows:
+            if r[5]:  # ad_id
+                cur.execute(f"SELECT id, title, image_url, price, city FROM {SCHEMA}.ads WHERE id = %s", (r[5],))
+                ad_row = cur.fetchone()
+                if ad_row:
+                    dialog_ad = {"id": ad_row[0], "title": ad_row[1], "image_url": ad_row[2], "price": ad_row[3], "city": ad_row[4]}
+                break
+
         conn.close()
 
         thread = []
@@ -245,6 +256,7 @@ def handler(event: dict, context) -> dict:
         return ok({
             "messages": thread,
             "other": {"id": other[0], "name": other[1], "avatar_url": other[2]} if other else None,
+            "dialog_ad": dialog_ad,
         })
 
     # --- mark_read ---
@@ -314,6 +326,9 @@ def handler(event: dict, context) -> dict:
         if not target_id or not rating:
             conn.close()
             return err(400, "Укажите target_user_id и оценку")
+        if not ad_id:
+            conn.close()
+            return err(400, "Отзыв можно оставить только по конкретному объявлению")
         if int(target_id) == user_id:
             conn.close()
             return err(400, "Нельзя оставлять отзыв самому себе")
@@ -322,30 +337,43 @@ def handler(event: dict, context) -> dict:
             return err(400, "Оценка от 1 до 5")
 
         cur = conn.cursor()
+
+        # Проверка: объявление существует и принадлежит продавцу
+        cur.execute(f"SELECT title, user_id FROM {SCHEMA}.ads WHERE id = %s", (int(ad_id),))
+        ad_row = cur.fetchone()
+        if not ad_row:
+            conn.close()
+            return err(404, "Объявление не найдено")
+        ad_title, ad_owner_id = ad_row
+        if ad_owner_id != int(target_id):
+            conn.close()
+            return err(400, "Объявление не принадлежит этому продавцу")
+
+        # Проверка: уже оставляли отзыв этому продавцу
         cur.execute(f"""
             SELECT id FROM {SCHEMA}.reviews
-            WHERE author_id = %s AND target_user_id = %s AND ad_id IS NOT DISTINCT FROM %s
-        """, (user_id, int(target_id), ad_id))
+            WHERE author_id = %s AND target_user_id = %s
+        """, (user_id, int(target_id)))
         if cur.fetchone():
             conn.close()
-            return err(409, "Вы уже оставляли отзыв для этой сделки")
+            return err(409, "Вы уже оставляли отзыв этому продавцу")
 
         cur.execute(f"""
             INSERT INTO {SCHEMA}.reviews (author_id, target_user_id, ad_id, rating, text)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id, created_at
-        """, (user_id, int(target_id), ad_id, int(rating), text or None))
+        """, (user_id, int(target_id), int(ad_id), int(rating), text or None))
         row = cur.fetchone()
 
         # Уведомление тому, кому оставили отзыв
         cur.execute(f"SELECT name FROM {SCHEMA}.users WHERE id = %s", (user_id,))
         author_name = (cur.fetchone() or ["Пользователь"])[0]
         stars = "⭐" * int(rating)
-        notif_text = f"{author_name} оставил отзыв {stars}: {(text or '')[:80]}"
+        notif_text = f"{author_name} оставил отзыв {stars} по объявлению «{ad_title[:40]}»: {(text or '')[:60]}"
         cur.execute(f"""
             INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
             VALUES (%s, 'review', 'Новый отзыв', %s, %s)
-        """, (int(target_id), notif_text, ad_id))
+        """, (int(target_id), notif_text, int(ad_id)))
 
         conn.commit()
         conn.close()

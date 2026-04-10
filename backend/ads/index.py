@@ -68,7 +68,10 @@ def handler(event: dict, context) -> dict:
         limit = int(qs.get("limit") or 40)
         offset = int(qs.get("offset") or 0)
 
+        user_id_filter = qs.get("user_id") or ""
         where = [f"a.status = 'active'"]
+        if user_id_filter:
+            where.append(f"a.user_id = {int(user_id_filter)}")
         if category:
             where.append(f"a.category = '{category}'")
         if subcategory:
