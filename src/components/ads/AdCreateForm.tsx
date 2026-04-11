@@ -148,10 +148,12 @@ export default function AdCreateForm({
           <select
             value={formData.category}
             onChange={e => {
-              onFieldChange("category", e.target.value);
+              const newCat = e.target.value;
+              const newCfg = getCategoryConfig(newCat);
+              onFieldChange("category", newCat);
               onFieldChange("subcategory", "");
-              onFieldChange("condition", "used");
-              onFieldChange("price_type", "fixed");
+              onFieldChange("condition", newCfg.showCondition ? "used" : "");
+              onFieldChange("price_type", newCfg.allowPriceFrom ? "from" : newCfg.allowFree ? "fixed" : "fixed");
             }}
             className={inputCls}
           >
@@ -320,31 +322,39 @@ export default function AdCreateForm({
         )}
 
         {/* Доп. поля по категории */}
-        {cfg.extraFields.map(field => (
-          <div key={field.key}>
-            <label className={labelCls}>{field.label}</label>
-            {field.type === "select" ? (
-              <select
-                value={formData.extras?.[field.key] || ""}
-                onChange={e => onExtrasChange(field.key, e.target.value)}
-                className={inputCls}
-              >
-                <option value="">Не указано</option>
-                {field.options?.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type={field.type}
-                value={formData.extras?.[field.key] || ""}
-                onChange={e => onExtrasChange(field.key, e.target.value)}
-                placeholder={field.placeholder}
-                className={inputCls}
-              />
-            )}
-          </div>
-        ))}
+        {cfg.extraFields
+          // Если у поля есть onlySubcats — показываем только для нужных подкатегорий
+          .filter(field =>
+            !field.onlySubcats ||
+            field.onlySubcats.length === 0 ||
+            !formData.subcategory ||
+            field.onlySubcats.includes(formData.subcategory)
+          )
+          .map(field => (
+            <div key={field.key}>
+              <label className={labelCls}>{field.label}</label>
+              {field.type === "select" ? (
+                <select
+                  value={formData.extras?.[field.key] || ""}
+                  onChange={e => onExtrasChange(field.key, e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">Не указано</option>
+                  {field.options?.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type={field.type}
+                  value={formData.extras?.[field.key] || ""}
+                  onChange={e => onExtrasChange(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  className={inputCls}
+                />
+              )}
+            </div>
+          ))}
 
         {/* Описание */}
         <div className="sm:col-span-2">
@@ -355,11 +365,15 @@ export default function AdCreateForm({
             onChange={e => onFieldChange("description", e.target.value)}
             placeholder={
               formData.category === "services"
-                ? "Опишите услугу, опыт, что входит в стоимость..."
+                ? "Опишите услугу подробнее: что входит в стоимость, сроки, гарантии, портфолио..."
                 : formData.category === "transport"
-                ? "Опишите состояние, историю обслуживания, комплектацию..."
+                ? "Опишите состояние авто, историю обслуживания, комплектацию, причину продажи..."
                 : formData.category === "animals"
-                ? "Расскажите о животном, характере, условиях содержания..."
+                ? "Расскажите о животном: характер, привычки, что умеет, условия передачи..."
+                : formData.category === "realty"
+                ? "Опишите квартиру: планировка, ремонт, инфраструктура, условия сделки..."
+                : formData.category === "food"
+                ? "Расскажите о продукте: состав, способ производства, условия хранения..."
                 : "Расскажите подробнее: состояние, комплектация, причина продажи..."
             }
             className={`${inputCls} resize-none`}
