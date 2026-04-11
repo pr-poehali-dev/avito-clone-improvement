@@ -70,6 +70,20 @@ def handler(event: dict, context) -> dict:
         user_city = qs.get("user_city") or ""  # город пользователя для приоритизации
 
         user_id_filter = qs.get("user_id") or ""
+        condition_filter = qs.get("condition") or ""
+        max_mileage = qs.get("max_mileage") or ""
+        min_year = qs.get("min_year") or ""
+        max_year = qs.get("max_year") or ""
+        extra_brand = qs.get("brand") or ""
+        extra_body_type = qs.get("body_type") or ""
+        extra_transmission = qs.get("transmission") or ""
+        extra_fuel = qs.get("fuel") or ""
+        extra_drive = qs.get("drive") or ""
+        extra_size = qs.get("size") or ""
+        extra_gender = qs.get("gender") or ""
+        sort_by = qs.get("sort_by") or "date"  # date | price_asc | price_desc | views
+        price_type_filter = qs.get("price_type") or ""
+
         where = [f"a.status = 'active'"]
         if user_id_filter:
             where.append(f"a.user_id = {int(user_id_filter)}")
@@ -87,6 +101,40 @@ def handler(event: dict, context) -> dict:
         if search:
             safe = search.replace("'", "''")
             where.append(f"(a.title ILIKE '%{safe}%' OR a.description ILIKE '%{safe}%')")
+        if condition_filter:
+            safe_cond = condition_filter.replace("'", "''")
+            where.append(f"a.condition = '{safe_cond}'")
+        if max_mileage:
+            where.append(f"a.mileage <= {int(max_mileage)}")
+        if price_type_filter:
+            safe_pt = price_type_filter.replace("'", "''")
+            where.append(f"a.price_type = '{safe_pt}'")
+        # Фильтры по extras (JSONB)
+        if min_year:
+            where.append(f"(a.extras->>'year')::int >= {int(min_year)}")
+        if max_year:
+            where.append(f"(a.extras->>'year')::int <= {int(max_year)}")
+        if extra_brand:
+            safe_b = extra_brand.replace("'", "''")
+            where.append(f"a.extras->>'brand' ILIKE '%{safe_b}%'")
+        if extra_body_type:
+            safe_bt = extra_body_type.replace("'", "''")
+            where.append(f"a.extras->>'body_type' = '{safe_bt}'")
+        if extra_transmission:
+            safe_tr = extra_transmission.replace("'", "''")
+            where.append(f"a.extras->>'transmission' = '{safe_tr}'")
+        if extra_fuel:
+            safe_fu = extra_fuel.replace("'", "''")
+            where.append(f"a.extras->>'fuel' = '{safe_fu}'")
+        if extra_drive:
+            safe_dr = extra_drive.replace("'", "''")
+            where.append(f"a.extras->>'drive' = '{safe_dr}'")
+        if extra_size:
+            safe_sz = extra_size.replace("'", "''")
+            where.append(f"a.extras->>'size' = '{safe_sz}'")
+        if extra_gender:
+            safe_gn = extra_gender.replace("'", "''")
+            where.append(f"a.extras->>'gender' = '{safe_gn}'")
 
         where_sql = " AND ".join(where)
 
@@ -115,8 +163,17 @@ def handler(event: dict, context) -> dict:
             "Воронеж": ["Липецк", "Белгород", "Курск", "Тамбов"],
         }
 
-        # Строим ORDER BY с учётом города
-        if user_city and user_city not in ("Все города", ""):
+        # Базовая сортировка
+        sort_map = {
+            "price_asc": "a.price ASC",
+            "price_desc": "a.price DESC",
+            "views": "a.views DESC",
+            "date": "a.created_at DESC",
+        }
+        base_order = sort_map.get(sort_by, "a.created_at DESC")
+
+        # Строим ORDER BY с учётом города (только если не выбрана явная сортировка)
+        if user_city and user_city not in ("Все города", "") and sort_by == "date":
             safe_city = user_city.replace("'", "''")
             nearby = NEARBY.get(user_city, [])
 
@@ -128,7 +185,7 @@ def handler(event: dict, context) -> dict:
             city_order = "CASE " + " ".join(city_cases) + " ELSE 999 END"
             order_sql = f"{city_order}, a.created_at DESC"
         else:
-            order_sql = "a.created_at DESC"
+            order_sql = base_order
 
         conn = get_conn()
         cur = conn.cursor()

@@ -34,6 +34,19 @@ export interface ListFilters {
   offset?: number;
   user_id?: string;
   user_city?: string;
+  sort_by?: string;
+  condition?: string;
+  max_mileage?: string;
+  min_year?: string;
+  max_year?: string;
+  brand?: string;
+  body_type?: string;
+  transmission?: string;
+  fuel?: string;
+  drive?: string;
+  size?: string;
+  gender?: string;
+  price_type?: string;
 }
 
 async function call(action: string, params: Record<string, string> = {}, body?: object) {
@@ -63,6 +76,19 @@ export async function listAds(filters: ListFilters = {}): Promise<{ ads: Ad[]; t
   if (filters.offset) params.offset = String(filters.offset);
   if (filters.user_id) params.user_id = filters.user_id;
   if (filters.user_city) params.user_city = filters.user_city;
+  if (filters.sort_by) params.sort_by = filters.sort_by;
+  if (filters.condition) params.condition = filters.condition;
+  if (filters.max_mileage) params.max_mileage = filters.max_mileage;
+  if (filters.min_year) params.min_year = filters.min_year;
+  if (filters.max_year) params.max_year = filters.max_year;
+  if (filters.brand) params.brand = filters.brand;
+  if (filters.body_type) params.body_type = filters.body_type;
+  if (filters.transmission) params.transmission = filters.transmission;
+  if (filters.fuel) params.fuel = filters.fuel;
+  if (filters.drive) params.drive = filters.drive;
+  if (filters.size) params.size = filters.size;
+  if (filters.gender) params.gender = filters.gender;
+  if (filters.price_type) params.price_type = filters.price_type;
   return call("list", params);
 }
 

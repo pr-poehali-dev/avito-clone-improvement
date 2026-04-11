@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import AdCard from "@/components/AdCard";
-import SearchBar from "@/components/SearchBar";
+import SearchBar, { SearchFilters } from "@/components/SearchBar";
 import AdBanner from "@/components/AdBanner";
 import { categories, subcategories } from "@/data/mockData";
 import { listAds, Ad, formatTimeAgo, ListFilters, getViewedIds } from "@/lib/adsApi";
@@ -21,6 +21,7 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [viewedIds, setViewedIds] = useState<Set<number>>(new Set());
+  const [activeFilters, setActiveFilters] = useState<SearchFilters | null>(null);
 
   const refreshViewed = () => getViewedIds().then(r => setViewedIds(new Set(r.ids))).catch(() => {});
 
@@ -36,17 +37,20 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
 
   const getUserCity = () => localStorage.getItem("om_user_city") || "";
 
+  const buildFilters = (category?: string, sub?: string, extra: ListFilters = {}): ListFilters => {
+    const userCity = getUserCity();
+    return {
+      category,
+      subcategory: sub || undefined,
+      ...extra,
+      ...(!extra.city && userCity ? { user_city: userCity } : {}),
+    };
+  };
+
   const loadAds = async (category?: string, sub?: string, extra: ListFilters = {}) => {
     setLoading(true);
     try {
-      const userCity = getUserCity();
-      const res = await listAds({
-        category,
-        subcategory: sub || undefined,
-        ...extra,
-        // Передаём город только если в extra нет явного фильтра по городу
-        ...(!extra.city && userCity ? { user_city: userCity } : {}),
-      });
+      const res = await listAds(buildFilters(category, sub, extra));
       setAds(res.ads);
       setTotal(res.total);
     } catch {
@@ -72,39 +76,67 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
   }, []);
 
   const handleCategoryClick = (id: string) => {
-    if (selected === id) {
-      setSelected(null);
-      setSelectedSub(null);
-      loadAds();
-    } else {
-      setSelected(id);
-      setSelectedSub(null);
-      loadAds(id);
-    }
+    const next = selected === id ? null : id;
+    setSelected(next);
+    setSelectedSub(null);
+    setActiveFilters(null);
+    loadAds(next || undefined);
   };
 
   const handleSubClick = (sub: string) => {
     const next = selectedSub === sub ? null : sub;
     setSelectedSub(next);
-    loadAds(selected || undefined, next || undefined);
+    if (activeFilters) {
+      handleSearch("", { ...activeFilters, category: selected || "" });
+    } else {
+      loadAds(selected || undefined, next || undefined);
+    }
   };
 
-  const handleSearch = (query: string, f: { city: string; category: string; minPrice: string; maxPrice: string }) => {
+  const handleSearch = (query: string, f: SearchFilters) => {
+    setActiveFilters(f);
     const cat = f.category || selected || undefined;
     if (f.category && f.category !== selected) {
       setSelected(f.category);
       setSelectedSub(null);
     }
-    loadAds(cat, undefined, {
+    const extra: ListFilters = {
       search: query || undefined,
-      city: f.city || undefined,
+      city: f.city !== "Все города" ? f.city || undefined : undefined,
       min_price: f.minPrice || undefined,
       max_price: f.maxPrice || undefined,
-    });
+      sort_by: f.sortBy !== "date" ? f.sortBy : undefined,
+      condition: f.condition || undefined,
+      max_mileage: f.maxMileage || undefined,
+      min_year: f.minYear || undefined,
+      max_year: f.maxYear || undefined,
+      brand: f.brand || undefined,
+      body_type: f.bodyType || undefined,
+      transmission: f.transmission || undefined,
+      fuel: f.fuel || undefined,
+      drive: f.drive || undefined,
+      size: f.size || undefined,
+      gender: f.gender || undefined,
+      price_type: f.priceType || undefined,
+      subcategory: selectedSub || undefined,
+    };
+    loadAds(cat, selectedSub || undefined, extra);
+  };
+
+  const handleReset = () => {
+    setSelected(null);
+    setSelectedSub(null);
+    setActiveFilters(null);
+    loadAds();
   };
 
   const selectedCat = categories.find(c => c.id === selected);
   const subs = selected ? (subcategories[selected] || []) : [];
+
+  // Текущая сортировка для отображения
+  const sortLabel: Record<string, string> = {
+    date: "Новые", price_asc: "Дешевле", price_desc: "Дороже", views: "Популярные",
+  };
 
   return (
     <div className="space-y-6">
@@ -113,7 +145,7 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
         <p className="text-muted-foreground">Выбери раздел и найди нужное</p>
       </div>
 
-      <SearchBar onSearch={handleSearch} />
+      <SearchBar onSearch={handleSearch} activeCategory={selected || ""} />
 
       {/* Category grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -139,7 +171,7 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
         ))}
       </div>
 
-      {/* Subcategories — показываем если категория выбрана */}
+      {/* Subcategories */}
       {selected && subs.length > 0 && (
         <div className="animate-fade-in">
           <div className="flex items-center gap-2 mb-3">
@@ -166,24 +198,33 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
         </div>
       )}
 
-      {/* Results */}
+      {/* Results header */}
       <div>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-display text-xl font-bold">
-            {selectedSub
-              ? `${selectedCat?.name} · ${selectedSub}`
-              : selectedCat
-              ? selectedCat.name
-              : "Все объявления"}
-            <span className="ml-2 text-base font-normal text-muted-foreground">{total} шт.</span>
-          </h2>
-          {(selected || selectedSub) && (
+        <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="font-display text-xl font-bold">
+              {selectedSub
+                ? `${selectedCat?.name} · ${selectedSub}`
+                : selectedCat
+                ? selectedCat.name
+                : "Все объявления"}
+              <span className="ml-2 text-base font-normal text-muted-foreground">{total} шт.</span>
+            </h2>
+            {activeFilters?.sortBy && activeFilters.sortBy !== "date" && (
+              <span className="flex items-center gap-1 text-xs bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-medium">
+                <Icon name="ArrowUpDown" size={11} />
+                {sortLabel[activeFilters.sortBy]}
+              </span>
+            )}
+          </div>
+
+          {(selected || selectedSub || activeFilters) && (
             <button
-              onClick={() => { setSelected(null); setSelectedSub(null); loadAds(); }}
+              onClick={handleReset}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Icon name="X" size={14} />
-              Сбросить
+              Сбросить всё
             </button>
           )}
         </div>
@@ -204,21 +245,30 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {ads.map((ad, i) => (
               <div key={ad.id} className={`animate-fade-in delay-${(i % 4 + 1) * 100}`}>
-                <AdCard ad={{ ...ad, date: formatTimeAgo(ad.created_at) }} onNavigate={onNavigate} viewed={viewedIds.has(ad.id)} />
+                <AdCard
+                  ad={{ ...ad, date: formatTimeAgo(ad.created_at) }}
+                  onNavigate={onNavigate}
+                  viewed={viewedIds.has(ad.id)}
+                />
               </div>
             ))}
-            {/* Рекламный баннер после 8+ объявлений */}
-            {ads.length >= 8 && (
+            {ads.length > 0 && ads.length % 8 === 0 && (
               <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
-                <AdBanner variant="horizontal" slot="2" />
+                <AdBanner />
               </div>
             )}
           </div>
         ) : (
-          <div className="text-center py-16 text-muted-foreground glass-card rounded-2xl">
+          <div className="text-center py-16 glass-card rounded-2xl">
             <Icon name="SearchX" size={48} className="mx-auto mb-4 opacity-30" />
-            <p className="text-lg font-medium">Объявлений не найдено</p>
-            <p className="text-sm mt-1">Попробуйте выбрать другую подкатегорию или сбросить фильтры</p>
+            <h3 className="font-display text-xl font-bold mb-2">Ничего не найдено</h3>
+            <p className="text-muted-foreground text-sm mb-4">Попробуйте изменить фильтры или поисковый запрос</p>
+            <button
+              onClick={handleReset}
+              className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-500 text-white rounded-xl font-semibold text-sm hover:opacity-90"
+            >
+              Сбросить фильтры
+            </button>
           </div>
         )}
       </div>
