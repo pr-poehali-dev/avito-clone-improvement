@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import { formatPrice } from "@/components/AdCard";
 import { formatTimeAgo, getAd, AdFull as AdFullType } from "@/lib/adsApi";
+import { getExtraFieldLabel } from "@/data/categoryConfig";
 import { sendMessage } from "@/lib/messagesApi";
 import { User } from "@/lib/auth";
 import MediaGallery from "@/components/MediaGallery";
@@ -108,7 +109,14 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
           <div className="glass-card rounded-2xl p-5 space-y-4">
             <div>
               <div className="flex items-baseline gap-2 mb-1">
-                <div className="text-3xl font-bold text-primary">{formatPrice(ad.price)}</div>
+                {ad.price_type === "free" ? (
+                  <div className="text-3xl font-bold text-emerald-600">Бесплатно</div>
+                ) : (
+                  <div className="text-3xl font-bold text-primary">
+                    {ad.price_type === "from" && <span className="text-lg font-normal text-muted-foreground mr-1">от</span>}
+                    {formatPrice(ad.price)} ₽
+                  </div>
+                )}
                 {ad.bargain && <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">Торг</span>}
                 {ad.exchange && <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">Обмен</span>}
               </div>
@@ -146,6 +154,29 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
                     {ad.quantity} шт.
                   </span>
                 )}
+              </div>
+            )}
+
+            {/* Характеристики: пробег + extras */}
+            {(ad.mileage || (ad.extras && Object.keys(ad.extras).filter(k => ad.extras![k]).length > 0)) && (
+              <div className="border border-border rounded-xl overflow-hidden">
+                <div className="px-3 py-2 bg-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Характеристики
+                </div>
+                <div className="divide-y divide-border/60">
+                  {ad.mileage && (
+                    <div className="flex items-center justify-between px-3 py-2 text-sm">
+                      <span className="text-muted-foreground">Пробег</span>
+                      <span className="font-medium">{ad.mileage.toLocaleString("ru-RU")} км</span>
+                    </div>
+                  )}
+                  {ad.extras && Object.entries(ad.extras).filter(([, v]) => v).map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between px-3 py-2 text-sm">
+                      <span className="text-muted-foreground">{getExtraFieldLabel(ad.category, k)}</span>
+                      <span className="font-medium">{v}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

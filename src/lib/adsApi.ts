@@ -83,6 +83,9 @@ export async function createAd(data: {
   quantity?: number;
   bargain?: boolean;
   exchange?: boolean;
+  price_type?: string;
+  mileage?: number;
+  extras?: Record<string, string>;
 }): Promise<{ ad: Ad }> {
   return call("create", {}, data);
 }
@@ -103,6 +106,9 @@ export interface AdFull {
   seller_avatar?: string | null;
   bargain?: boolean;
   exchange?: boolean;
+  price_type?: string;
+  mileage?: number | null;
+  extras?: Record<string, string> | null;
 }
 
 export async function deleteAd(id: number): Promise<void> {

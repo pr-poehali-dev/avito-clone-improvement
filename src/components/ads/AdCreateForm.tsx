@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import MediaUploader, { MediaItem } from "@/components/MediaUploader";
 import { categories, subcategories } from "@/data/mockData";
+import { getCategoryConfig } from "@/data/categoryConfig";
 import CitySelect from "@/components/CitySelect";
 import { getTemplates, saveTemplate, deleteTemplate } from "@/lib/adsApi";
 
@@ -16,6 +17,9 @@ interface FormData {
   quantity: string;
   bargain: string;
   exchange: string;
+  price_type: string;   // 'fixed' | 'from' | 'free'
+  mileage: string;
+  extras: Record<string, string>;
 }
 
 interface Template { id: number; name: string; data: Record<string, string>; created_at: string; }
@@ -26,6 +30,7 @@ interface AdCreateFormProps {
   saving: boolean;
   error: string;
   onFieldChange: (key: string, value: string) => void;
+  onExtrasChange: (key: string, value: string) => void;
   onMediaChange: (media: MediaItem[]) => void;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
@@ -40,10 +45,12 @@ export default function AdCreateForm({
   saving,
   error,
   onFieldChange,
+  onExtrasChange,
   onMediaChange,
   onSubmit,
   onCancel,
 }: AdCreateFormProps) {
+  const cfg = getCategoryConfig(formData.category);
   const availableSubcats = formData.category ? (subcategories[formData.category] || []) : [];
   const [templates, setTemplates] = useState<Template[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -83,6 +90,9 @@ export default function AdCreateForm({
     await deleteTemplate(id).catch(() => {});
     setTemplates(t => t.filter(x => x.id !== id));
   };
+
+  const priceType = formData.price_type || "fixed";
+  const isFree = priceType === "free";
 
   return (
     <form onSubmit={onSubmit} className="glass-card rounded-2xl p-6 animate-fade-in border-2 border-violet-200">
@@ -137,7 +147,12 @@ export default function AdCreateForm({
           <label className={labelCls}>Категория *</label>
           <select
             value={formData.category}
-            onChange={e => { onFieldChange("category", e.target.value); onFieldChange("subcategory", ""); }}
+            onChange={e => {
+              onFieldChange("category", e.target.value);
+              onFieldChange("subcategory", "");
+              onFieldChange("condition", "used");
+              onFieldChange("price_type", "fixed");
+            }}
             className={inputCls}
           >
             <option value="">Выберите категорию</option>
@@ -145,7 +160,7 @@ export default function AdCreateForm({
           </select>
         </div>
 
-        {/* Подкатегория — появляется после выбора категории */}
+        {/* Подкатегория */}
         <div>
           <label className={labelCls}>Подкатегория</label>
           <select
@@ -161,15 +176,49 @@ export default function AdCreateForm({
 
         {/* Цена */}
         <div>
-          <label className={labelCls}>Цена, ₽</label>
-          <input
-            type="number"
-            min="0"
-            value={formData.price}
-            onChange={e => onFieldChange("price", e.target.value)}
-            placeholder="0"
-            className={inputCls}
-          />
+          <label className={labelCls}>
+            {priceType === "from" ? "Цена от, ₽" : "Цена, ₽"}
+          </label>
+
+          {/* Тип цены */}
+          <div className="flex gap-1.5 mb-2">
+            {[
+              { value: "fixed", label: "Фиксированная" },
+              ...(cfg.allowPriceFrom ? [{ value: "from", label: "Цена от" }] : []),
+              ...(cfg.allowFree ? [{ value: "free", label: "Бесплатно" }] : []),
+            ].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onFieldChange("price_type", opt.value)}
+                className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                  priceType === opt.value
+                    ? "border-violet-500 bg-violet-50 text-violet-700"
+                    : "border-border text-muted-foreground hover:border-violet-300"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {!isFree && (
+            <input
+              type="number"
+              min="0"
+              value={formData.price}
+              onChange={e => onFieldChange("price", e.target.value)}
+              placeholder="0"
+              className={inputCls}
+            />
+          )}
+          {isFree && (
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-medium">
+              <Icon name="Gift" size={15} />
+              Отдам бесплатно
+            </div>
+          )}
+
           <div className="flex gap-4 mt-2">
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
@@ -198,58 +247,104 @@ export default function AdCreateForm({
           <CitySelect value={formData.city} onChange={v => onFieldChange("city", v)} placeholder="Выберите город" />
         </div>
 
-        {/* Состояние товара */}
-        <div>
-          <label className={labelCls}>Состояние</label>
-          <div className="flex gap-2">
-            {[
-              { value: "new", label: "Новое", icon: "Sparkles" },
-              { value: "used", label: "Б/У", icon: "RefreshCw" },
-            ].map(opt => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onFieldChange("condition", opt.value)}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-                  formData.condition === opt.value
-                    ? "border-violet-500 bg-violet-50 text-violet-700"
-                    : "border-border bg-white text-muted-foreground hover:border-violet-300"
-                }`}
-              >
-                <Icon name={opt.icon} size={14} />
-                {opt.label}
-              </button>
-            ))}
+        {/* Состояние товара — только для категорий где это имеет смысл */}
+        {cfg.showCondition && (
+          <div>
+            <label className={labelCls}>Состояние</label>
+            <div className="flex gap-2">
+              {[
+                { value: "new", label: "Новое", icon: "Sparkles" },
+                { value: "used", label: "Б/У", icon: "RefreshCw" },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onFieldChange("condition", opt.value)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                    formData.condition === opt.value
+                      ? "border-violet-500 bg-violet-50 text-violet-700"
+                      : "border-border bg-white text-muted-foreground hover:border-violet-300"
+                  }`}
+                >
+                  <Icon name={opt.icon} size={14} />
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Количество */}
-        <div>
-          <label className={labelCls}>Количество</label>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onFieldChange("quantity", String(Math.max(1, parseInt(formData.quantity || "1") - 1)))}
-              className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted/50 transition-colors text-lg font-bold"
-            >−</button>
+        {/* Пробег — только для транспорта */}
+        {cfg.showMileage && (
+          <div>
+            <label className={labelCls}>Пробег, км</label>
             <input
               type="number"
-              min="1"
-              max="9999"
-              value={formData.quantity}
-              onChange={e => onFieldChange("quantity", e.target.value)}
-              className="flex-1 border border-border rounded-xl px-4 py-2.5 text-sm text-center outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all bg-white"
+              min="0"
+              value={formData.mileage}
+              onChange={e => onFieldChange("mileage", e.target.value)}
+              placeholder="150000"
+              className={inputCls}
             />
-            <button
-              type="button"
-              onClick={() => onFieldChange("quantity", String(parseInt(formData.quantity || "1") + 1))}
-              className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted/50 transition-colors text-lg font-bold"
-            >+</button>
           </div>
-          {parseInt(formData.quantity) > 1 && (
-            <p className="text-xs text-muted-foreground mt-1">Несколько штук в наличии</p>
-          )}
-        </div>
+        )}
+
+        {/* Количество — только там где нужно */}
+        {cfg.showQuantity && (
+          <div>
+            <label className={labelCls}>Количество</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onFieldChange("quantity", String(Math.max(1, parseInt(formData.quantity || "1") - 1)))}
+                className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted/50 transition-colors text-lg font-bold"
+              >−</button>
+              <input
+                type="number"
+                min="1"
+                max="9999"
+                value={formData.quantity}
+                onChange={e => onFieldChange("quantity", e.target.value)}
+                className="flex-1 border border-border rounded-xl px-4 py-2.5 text-sm text-center outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all bg-white"
+              />
+              <button
+                type="button"
+                onClick={() => onFieldChange("quantity", String(parseInt(formData.quantity || "1") + 1))}
+                className="w-10 h-10 rounded-xl border border-border flex items-center justify-center hover:bg-muted/50 transition-colors text-lg font-bold"
+              >+</button>
+            </div>
+            {parseInt(formData.quantity) > 1 && (
+              <p className="text-xs text-muted-foreground mt-1">Несколько штук в наличии</p>
+            )}
+          </div>
+        )}
+
+        {/* Доп. поля по категории */}
+        {cfg.extraFields.map(field => (
+          <div key={field.key}>
+            <label className={labelCls}>{field.label}</label>
+            {field.type === "select" ? (
+              <select
+                value={formData.extras?.[field.key] || ""}
+                onChange={e => onExtrasChange(field.key, e.target.value)}
+                className={inputCls}
+              >
+                <option value="">Не указано</option>
+                {field.options?.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={field.type}
+                value={formData.extras?.[field.key] || ""}
+                onChange={e => onExtrasChange(field.key, e.target.value)}
+                placeholder={field.placeholder}
+                className={inputCls}
+              />
+            )}
+          </div>
+        ))}
 
         {/* Описание */}
         <div className="sm:col-span-2">
@@ -258,7 +353,15 @@ export default function AdCreateForm({
             rows={4}
             value={formData.description}
             onChange={e => onFieldChange("description", e.target.value)}
-            placeholder="Расскажите подробнее: состояние, комплектация, причина продажи..."
+            placeholder={
+              formData.category === "services"
+                ? "Опишите услугу, опыт, что входит в стоимость..."
+                : formData.category === "transport"
+                ? "Опишите состояние, историю обслуживания, комплектацию..."
+                : formData.category === "animals"
+                ? "Расскажите о животном, характере, условиях содержания..."
+                : "Расскажите подробнее: состояние, комплектация, причина продажи..."
+            }
             className={`${inputCls} resize-none`}
           />
         </div>

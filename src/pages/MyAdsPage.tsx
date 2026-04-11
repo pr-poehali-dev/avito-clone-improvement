@@ -12,7 +12,11 @@ interface MyAdsPageProps {
   onNavigate?: (page: string) => void;
 }
 
-const emptyForm = { title: "", price: "", description: "", category: "", subcategory: "", city: "", condition: "used", quantity: "1", bargain: "false", exchange: "false" };
+const emptyForm = {
+  title: "", price: "", description: "", category: "", subcategory: "", city: "",
+  condition: "used", quantity: "1", bargain: "false", exchange: "false",
+  price_type: "fixed", mileage: "", extras: {} as Record<string, string>,
+};
 
 export default function MyAdsPage({ adImages, openForm, onFormOpened, onNavigate }: MyAdsPageProps) {
   const [showForm, setShowForm] = useState(false);
@@ -52,6 +56,7 @@ export default function MyAdsPage({ adImages, openForm, onFormOpened, onNavigate
   useEffect(() => { loadAds(tab); }, [tab]);
 
   const set = (k: string, v: string) => { setFormData(f => ({ ...f, [k]: v })); setError(""); };
+  const setExtra = (k: string, v: string) => { setFormData(f => ({ ...f, extras: { ...f.extras, [k]: v } })); };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,10 +68,11 @@ export default function MyAdsPage({ adImages, openForm, onFormOpened, onNavigate
     setError("");
     try {
       const readyMedia = media.filter(m => m.url && !m.uploading);
+      const isFree = formData.price_type === "free";
       await createAd({
         title: formData.title,
         description: formData.description,
-        price: parseInt(formData.price) || 0,
+        price: isFree ? 0 : (parseInt(formData.price) || 0),
         category: formData.category,
         subcategory: formData.subcategory || undefined,
         city: formData.city,
@@ -76,6 +82,9 @@ export default function MyAdsPage({ adImages, openForm, onFormOpened, onNavigate
         exchange: formData.exchange === "true",
         image_url: readyMedia[0]?.url || undefined,
         media_urls: readyMedia.map(m => ({ url: m.url, type: m.type })),
+        price_type: formData.price_type,
+        mileage: formData.mileage ? parseInt(formData.mileage) : undefined,
+        extras: Object.keys(formData.extras).length > 0 ? formData.extras : undefined,
       });
       setSuccess(true);
       setFormData(emptyForm);
@@ -161,6 +170,7 @@ export default function MyAdsPage({ adImages, openForm, onFormOpened, onNavigate
           saving={saving}
           error={error}
           onFieldChange={set}
+          onExtrasChange={setExtra}
           onMediaChange={setMedia}
           onSubmit={handleSubmit}
           onCancel={() => { setShowForm(false); setFormData(emptyForm); setMedia([]); }}

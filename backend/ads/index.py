@@ -228,6 +228,9 @@ def handler(event: dict, context) -> dict:
         quantity = int(body.get("quantity") or 1)
         bargain = bool(body.get("bargain") or False)
         exchange = bool(body.get("exchange") or False)
+        price_type = (body.get("price_type") or "fixed").strip()
+        mileage = body.get("mileage") or None
+        extras = body.get("extras") or {}
 
         if not title or not category:
             conn.close()
@@ -238,6 +241,12 @@ def handler(event: dict, context) -> dict:
         except Exception:
             price = 0
 
+        if mileage is not None:
+            try:
+                mileage = int(mileage)
+            except Exception:
+                mileage = None
+
         media_urls = body.get("media_urls") or []  # [{url, type}]
         # если media_urls не передан но есть image_url — используем его
         if not media_urls and image_url:
@@ -245,11 +254,12 @@ def handler(event: dict, context) -> dict:
 
         cur = conn.cursor()
         cur.execute(f"""
-            INSERT INTO {SCHEMA}.ads (user_id, title, description, price, category, subcategory, city, image_url, status, condition, quantity, bargain, exchange)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s, %s)
+            INSERT INTO {SCHEMA}.ads (user_id, title, description, price, category, subcategory, city, image_url, status, condition, quantity, bargain, exchange, price_type, mileage, extras)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s, %s, %s, %s, %s)
             RETURNING id, title, price, city, category, views, image_url, created_at
         """, (user_id, title, description, price, category, subcategory, city,
-              media_urls[0]["url"] if media_urls else image_url, condition, quantity, bargain, exchange))
+              media_urls[0]["url"] if media_urls else image_url, condition, quantity, bargain, exchange,
+              price_type, mileage, json.dumps(extras, ensure_ascii=False)))
         row = cur.fetchone()
         ad_id = row[0]
 
@@ -342,7 +352,7 @@ def handler(event: dict, context) -> dict:
                    u.id as user_id, u.name as seller_name,
                    a.subcategory, a.condition, a.quantity,
                    u.phone as seller_phone, u.avatar_url as seller_avatar,
-                   a.bargain, a.exchange
+                   a.bargain, a.exchange, a.price_type, a.mileage, a.extras
             FROM {SCHEMA}.ads a
             JOIN {SCHEMA}.users u ON u.id = a.user_id
             WHERE a.id = %s
@@ -387,6 +397,9 @@ def handler(event: dict, context) -> dict:
             "subcategory": row[12], "condition": row[13], "quantity": row[14],
             "seller_phone": row[15], "seller_avatar": row[16],
             "bargain": row[17], "exchange": row[18],
+            "price_type": row[19] or "fixed",
+            "mileage": row[20],
+            "extras": row[21] or {},
             "media": media if media else ([{"url": row[7], "type": "photo"}] if row[7] else []),
         }
         return ok({"ad": ad})
