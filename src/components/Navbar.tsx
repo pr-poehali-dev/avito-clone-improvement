@@ -18,6 +18,8 @@ interface NavbarProps {
   onAuthClick: () => void;
   onPostAd: () => void;
   onSearch?: (query: string, filters?: { city: string; category: string; minPrice: string; maxPrice: string }) => void;
+  theme?: string;
+  onToggleTheme?: () => void;
 }
 
 const navItems = [
@@ -52,6 +54,8 @@ export default function Navbar({
   onAuthClick,
   onPostAd,
   onSearch,
+  theme,
+  onToggleTheme,
 }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unreadMsgs, setUnreadMsgs] = useState(0);
@@ -190,6 +194,17 @@ export default function Navbar({
             <span className="text-muted-foreground/50 min-w-20">Поиск</span>
             <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-muted rounded text-[10px] text-muted-foreground/70 font-mono">⌘K</kbd>
           </button>
+
+          {/* Theme toggle */}
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+              className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent hover:border-border"
+            >
+              <Icon name={theme === "dark" ? "Sun" : "Moon"} size={16} />
+            </button>
+          )}
 
           {/* Right side */}
           <div className="flex items-center gap-2">
@@ -388,6 +403,15 @@ export default function Navbar({
               </button>
             );
           })}
+          {onToggleTheme && (
+            <button
+              onClick={() => { onToggleTheme(); setMobileOpen(false); }}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted/60 transition-all mb-1"
+            >
+              <Icon name={theme === "dark" ? "Sun" : "Moon"} size={16} />
+              {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+            </button>
+          )}
           {user ? (
             <button
               onClick={() => {

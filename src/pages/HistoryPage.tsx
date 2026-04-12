@@ -43,13 +43,13 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[...Array(8)].map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[...Array(10)].map((_, i) => (
             <div key={i} className="glass-card rounded-2xl overflow-hidden animate-pulse">
-              <div className="h-48 bg-muted" />
-              <div className="p-4 space-y-2">
-                <div className="h-5 bg-muted rounded w-1/2" />
-                <div className="h-4 bg-muted rounded w-3/4" />
+              <div className="h-36 bg-muted" />
+              <div className="p-3 space-y-2">
+                <div className="h-4 bg-muted rounded w-1/2" />
+                <div className="h-3 bg-muted rounded w-3/4" />
               </div>
             </div>
           ))}
@@ -76,7 +76,7 @@ export default function HistoryPage({ onNavigate }: HistoryPageProps) {
                 <span className="text-sm font-semibold text-muted-foreground">{date}</span>
                 <span className="text-xs text-muted-foreground/60">· {dateAds.length} объявл.</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {dateAds.map(ad => (
                   <div key={ad.id} className="relative">
                     <AdCard ad={ad} onNavigate={onNavigate} viewed />

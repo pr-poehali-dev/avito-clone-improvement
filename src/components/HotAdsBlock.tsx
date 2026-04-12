@@ -35,19 +35,19 @@ export default function HotAdsBlock({ onNavigate, viewedIds }: HotAdsBlockProps)
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[...Array(5)].map((_, i) => (
             <div key={i} className="glass-card rounded-2xl overflow-hidden animate-pulse">
-              <div className="h-48 bg-muted" />
-              <div className="p-4 space-y-2">
-                <div className="h-5 bg-muted rounded w-1/2" />
-                <div className="h-4 bg-muted rounded w-3/4" />
+              <div className="h-36 bg-muted" />
+              <div className="p-3 space-y-2">
+                <div className="h-4 bg-muted rounded w-1/2" />
+                <div className="h-3 bg-muted rounded w-3/4" />
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {ads.map((ad, i) => (
             <div key={ad.id} className={`animate-fade-in delay-${(i % 4 + 1) * 100}`}>
               <AdCard ad={{ ...ad, hot: true }} onNavigate={onNavigate} viewed={viewedIds.has(ad.id)} />

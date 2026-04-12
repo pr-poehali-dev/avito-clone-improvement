@@ -230,8 +230,8 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {[...Array(8)].map((_, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+            {[...Array(10)].map((_, i) => (
               <div key={i} className="glass-card rounded-2xl overflow-hidden animate-pulse">
                 <div className="h-48 bg-muted" />
                 <div className="p-4 space-y-2">
@@ -242,7 +242,7 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
             ))}
           </div>
         ) : ads.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
             {ads.map((ad, i) => (
               <div key={ad.id} className={`animate-fade-in delay-${(i % 4 + 1) * 100}`}>
                 <AdCard

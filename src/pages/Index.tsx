@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
+import { useTheme } from "@/hooks/useTheme";
 import Logo from "@/components/Logo";
 import AuthModal from "@/components/AuthModal";
 import HomePage from "@/pages/HomePage";
@@ -22,6 +23,7 @@ import { User, getMe, logout, getToken } from "@/lib/auth";
 const ADS_URL = "https://functions.poehali.dev/20fb4d0c-9d4b-45b1-b857-f639e2beaa7a";
 
 export default function Index() {
+  const { theme, toggle: toggleTheme } = useTheme();
   const [activePage, setActivePage] = useState("home");
   const [user, setUser] = useState<User | null>(null);
   const [showAuth, setShowAuth] = useState(false);
@@ -176,6 +178,8 @@ export default function Index() {
         onAuthClick={() => setShowAuth(true)}
         onPostAd={handlePostAd}
         onSearch={(q, f) => { setGlobalSearch(q); setGlobalFilters(f); handleNavigate("categories"); }}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-24 md:pb-8">
