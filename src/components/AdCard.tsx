@@ -72,7 +72,7 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavo
       )}
 
       {/* Image */}
-      <div className="relative h-48 overflow-hidden bg-gradient-to-br from-muted to-muted/50">
+      <div className="relative h-36 overflow-hidden bg-gradient-to-br from-muted to-muted/50">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -81,7 +81,7 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavo
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className={`text-5xl ${viewed ? "opacity-70" : ""}`}>{categoryEmojis[ad.category] || "📦"}</span>
+            <span className={`text-4xl ${viewed ? "opacity-70" : ""}`}>{categoryEmojis[ad.category] || "📦"}</span>
           </div>
         )}
 
@@ -123,13 +123,13 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavo
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-3">
         <div className="flex items-baseline gap-2 mb-1">
-          <div className="text-xl font-bold text-primary">{formatPrice(ad.price)}</div>
+          <div className="text-lg font-bold text-primary">{formatPrice(ad.price)}</div>
           {ad.bargain && <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-1.5 py-0.5 rounded-full">Торг</span>}
           {ad.exchange && <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-1.5 py-0.5 rounded-full">Обмен</span>}
         </div>
-        <h3 className="font-semibold text-foreground text-sm line-clamp-2 mb-3 leading-snug">{ad.title}</h3>
+        <h3 className="font-semibold text-foreground text-sm line-clamp-2 mb-2 leading-snug">{ad.title}</h3>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
