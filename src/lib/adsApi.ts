@@ -198,6 +198,18 @@ export async function getOffers(adId: number): Promise<{ offers: Array<{ id: num
   return call("get_offers", { ad_id: String(adId) });
 }
 
+export async function acceptOffer(offerId: number): Promise<{ ok: boolean }> {
+  return call("accept_offer", {}, { offer_id: offerId });
+}
+
+export async function rejectOffer(offerId: number): Promise<{ ok: boolean }> {
+  return call("reject_offer", {}, { offer_id: offerId });
+}
+
+export async function getMyOffers(): Promise<{ offers: Array<{ id: number; offered_price: number; message: string; status: string; created_at: string; ad_id: number; ad_title: string; ad_price: number }> }> {
+  return call("get_my_offers");
+}
+
 export async function getRecommendations(limit = 8): Promise<{ ads: Ad[]; based_on: string[] }> {
   return call("recommendations", { limit: String(limit) });
 }

@@ -801,6 +801,110 @@ def handler(event: dict, context) -> dict:
                    "created_at": str(r[4]), "buyer_name": r[5]} for r in rows]
         return ok({"offers": offers})
 
+    # --- accept_offer: продавец принимает предложение цены ---
+    if action == "accept_offer":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        offer_id = body.get("offer_id")
+        if not offer_id:
+            conn.close()
+            return err(400, "Укажите offer_id")
+        cur = conn.cursor()
+        # Проверяем что продавец — владелец объявления
+        cur.execute(f"""
+            SELECT o.id, o.buyer_id, o.offered_price, a.title, a.id as ad_id
+            FROM {SCHEMA}.price_offers o
+            JOIN {SCHEMA}.ads a ON a.id = o.ad_id
+            WHERE o.id = %s AND a.user_id = %s AND o.status = 'pending'
+        """, (int(offer_id), user_id))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return err(404, "Предложение не найдено или уже обработано")
+        _, buyer_id, offered_price, ad_title, ad_id = row
+        cur.execute(f"UPDATE {SCHEMA}.price_offers SET status = 'accepted', updated_at = NOW() WHERE id = %s", (int(offer_id),))
+        # Отклоняем остальные офферы на это объявление
+        cur.execute(f"UPDATE {SCHEMA}.price_offers SET status = 'rejected', updated_at = NOW() WHERE ad_id = %s AND id != %s AND status = 'pending'", (ad_id, int(offer_id)))
+        # Уведомление покупателю
+        cur.execute(f"""
+            SELECT name FROM {SCHEMA}.users WHERE id = %s
+        """, (user_id,))
+        seller_name = (cur.fetchone() or ["Продавец"])[0]
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+            VALUES (%s, 'offer_accepted', 'Ваше предложение принято!', %s, %s)
+        """, (buyer_id, f'{seller_name} принял вашу цену {int(offered_price):,} ₽ за «{ad_title}»', ad_id))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
+    # --- reject_offer: продавец отклоняет предложение цены ---
+    if action == "reject_offer":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        offer_id = body.get("offer_id")
+        if not offer_id:
+            conn.close()
+            return err(400, "Укажите offer_id")
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT o.id, o.buyer_id, o.offered_price, a.title, a.id as ad_id
+            FROM {SCHEMA}.price_offers o
+            JOIN {SCHEMA}.ads a ON a.id = o.ad_id
+            WHERE o.id = %s AND a.user_id = %s AND o.status = 'pending'
+        """, (int(offer_id), user_id))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return err(404, "Предложение не найдено или уже обработано")
+        _, buyer_id, offered_price, ad_title, ad_id = row
+        cur.execute(f"UPDATE {SCHEMA}.price_offers SET status = 'rejected', updated_at = NOW() WHERE id = %s", (int(offer_id),))
+        cur.execute(f"""
+            SELECT name FROM {SCHEMA}.users WHERE id = %s
+        """, (user_id,))
+        seller_name = (cur.fetchone() or ["Продавец"])[0]
+        cur.execute(f"""
+            INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id)
+            VALUES (%s, 'offer_rejected', 'Предложение отклонено', %s, %s)
+        """, (buyer_id, f'{seller_name} отклонил вашу цену {int(offered_price):,} ₽ за «{ad_title}»', ad_id))
+        conn.commit()
+        conn.close()
+        return ok({"ok": True})
+
+    # --- get_my_offers: предложения, которые покупатель сделал сам ---
+    if action == "get_my_offers":
+        if not token:
+            return err(401, "Не авторизован")
+        conn = get_conn()
+        user_id = get_user_id(token, conn)
+        if not user_id:
+            conn.close()
+            return err(401, "Не авторизован")
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT o.id, o.offered_price, o.message, o.status, o.created_at, o.ad_id, a.title, a.price
+            FROM {SCHEMA}.price_offers o
+            JOIN {SCHEMA}.ads a ON a.id = o.ad_id
+            WHERE o.buyer_id = %s
+            ORDER BY o.created_at DESC
+            LIMIT 20
+        """, (user_id,))
+        rows = cur.fetchall()
+        conn.close()
+        offers = [{"id": r[0], "offered_price": r[1], "message": r[2], "status": r[3],
+                   "created_at": str(r[4]), "ad_id": r[5], "ad_title": r[6], "ad_price": r[7]} for r in rows]
+        return ok({"offers": offers})
+
     # --- recommendations: объявления на основе истории просмотров ---
     if action == "recommendations":
         limit = int(qs.get("limit") or 8)

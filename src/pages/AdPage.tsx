@@ -12,6 +12,7 @@ import PriceOfferForm from "@/components/ads/PriceOfferForm";
 import ReportButton from "@/components/ads/ReportButton";
 import SimilarAds from "@/components/ads/SimilarAds";
 import PriceHistory from "@/components/ads/PriceHistory";
+import OffersPanel from "@/components/ads/OffersPanel";
 
 type AdFull = AdFullType;
 
@@ -279,9 +280,10 @@ export default function AdPage({ adId, onBack, onNavigate, user, onAuthClick }: 
             )}
             {user?.id === ad.user_id && (
               <div className="space-y-3">
-                <div className="px-4 py-3 bg-violet-50 rounded-xl text-sm text-violet-700 font-medium text-center">
+                <div className="px-4 py-3 bg-violet-50 dark:bg-violet-950/20 rounded-xl text-sm text-violet-700 font-medium text-center">
                   Это ваше объявление
                 </div>
+                <OffersPanel adId={ad.id} adPrice={ad.price} />
                 <ShareButton title={ad.title} adId={ad.id} />
               </div>
             )}
