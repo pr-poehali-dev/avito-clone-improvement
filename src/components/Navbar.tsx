@@ -67,8 +67,23 @@ export default function Navbar({
   const [searchMinPrice, setSearchMinPrice] = useState("");
   const [searchMaxPrice, setSearchMaxPrice] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [cityInputValue, setCityInputValue] = useState("Все города");
+  const [cityDropOpen, setCityDropOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState("");
   const searchPanelRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const cityInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredCities = citySearch.trim()
+    ? RUSSIAN_CITIES.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()))
+    : RUSSIAN_CITIES;
+
+  const selectCity = (city: string) => {
+    setSearchCity(city);
+    setCityInputValue(city);
+    setCityDropOpen(false);
+    setCitySearch("");
+  };
 
   // Закрытие панели поиска при клике вне
   useEffect(() => {
@@ -269,18 +284,38 @@ export default function Navbar({
               }}
             >
               <div className="flex gap-1.5 bg-muted/40 rounded-xl border border-border px-1.5 py-1.5 items-center">
-                {/* City selector — native select для надёжности внутри navbar */}
-                <div className="flex items-center gap-1.5 pl-2 pr-2 border-r border-border shrink-0">
+                {/* City selector с поиском */}
+                <div className="relative flex items-center gap-1.5 pl-2 pr-2 border-r border-border shrink-0">
                   <Icon name="MapPin" size={13} className="text-violet-500 shrink-0" />
-                  <select
-                    value={searchCity}
-                    onChange={e => setSearchCity(e.target.value)}
-                    className="text-sm outline-none bg-transparent text-muted-foreground cursor-pointer max-w-[120px]"
-                  >
-                    {RUSSIAN_CITIES.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                  <input
+                    ref={cityInputRef}
+                    type="text"
+                    value={cityDropOpen ? citySearch : cityInputValue}
+                    onChange={e => { setCitySearch(e.target.value); setCityDropOpen(true); }}
+                    onFocus={() => { setCityDropOpen(true); setCitySearch(""); }}
+                    onBlur={() => setTimeout(() => { setCityDropOpen(false); setCitySearch(""); }, 150)}
+                    placeholder="Город"
+                    className="text-sm outline-none bg-transparent text-muted-foreground w-[110px] cursor-pointer"
+                  />
+                  {cityDropOpen && filteredCities.length > 0 && (
+                    <div className="absolute left-0 top-full mt-2 w-56 bg-white dark:bg-card border border-border rounded-xl shadow-2xl z-[200] overflow-hidden animate-fade-in">
+                      <div className="max-h-60 overflow-y-auto py-1">
+                        {filteredCities.map((city, idx) => (
+                          <button
+                            key={`${city}-${idx}`}
+                            type="button"
+                            onMouseDown={e => e.preventDefault()}
+                            onClick={() => selectCity(city)}
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors ${
+                              searchCity === city ? "text-violet-700 font-semibold bg-violet-50 dark:bg-violet-900/20" : "text-foreground"
+                            }`}
+                          >
+                            {city}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <input
                   ref={searchInputRef}
