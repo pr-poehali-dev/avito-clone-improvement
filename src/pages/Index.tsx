@@ -16,6 +16,7 @@ import AdminPage from "@/pages/AdminPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SubscriptionsPage from "@/pages/SubscriptionsPage";
 import SupportButton from "@/components/SupportButton";
+import KnowledgeBasePage from "@/pages/KnowledgeBasePage";
 import BottomNav from "@/components/BottomNav";
 import Icon from "@/components/ui/icon";
 import { User, getMe, logout, getToken } from "@/lib/auth";
@@ -143,6 +144,7 @@ export default function Index() {
       }} />;
       case "history": return <HistoryPage onNavigate={handleNavigate} />;
       case "subscriptions": return <SubscriptionsPage onNavigate={handleNavigate} />;
+      case "knowledge-base": return <KnowledgeBasePage onNavigate={handleNavigate} />;
       case "ad": return pageParam ? (
         <AdPage
           adId={pageParam}
@@ -193,7 +195,11 @@ export default function Index() {
         />
       )}
 
-      <SupportButton />
+      <SupportButton
+        user={user}
+        onAuthClick={() => setShowAuth(true)}
+        onKnowledgeBase={() => handleNavigate("knowledge-base")}
+      />
 
       <BottomNav
         activePage={activePage}

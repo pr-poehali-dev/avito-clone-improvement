@@ -5,6 +5,7 @@ import AdminStatsTab from "@/components/admin/AdminStatsTab";
 import AdminUsersTab, { AdminUser } from "@/components/admin/AdminUsersTab";
 import AdminAdsTab, { AdminAd } from "@/components/admin/AdminAdsTab";
 import { AdminReportsTab, AdminActivityTab, Report, UserActivity } from "@/components/admin/AdminReportsTab";
+import AdminSupportTab from "@/components/admin/AdminSupportTab";
 
 interface Stats {
   total_users: number; active_ads: number; total_ads: number;
@@ -12,7 +13,7 @@ interface Stats {
   new_users_week: number; new_ads_week: number;
 }
 
-type Tab = "stats" | "users" | "ads" | "activity" | "reports";
+type Tab = "stats" | "users" | "ads" | "activity" | "reports" | "support";
 
 interface AdminPageProps {
   onNavigate?: (page: string, param?: number) => void;
@@ -29,6 +30,7 @@ export default function AdminPage({ onNavigate }: AdminPageProps) {
   const [replyModal, setReplyModal] = useState<Report | null>(null);
   const [replyText, setReplyText] = useState("");
   const [openReportsCount, setOpenReportsCount] = useState(0);
+  const [openSupportCount, setOpenSupportCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -42,6 +44,12 @@ export default function AdminPage({ onNavigate }: AdminPageProps) {
     if (data.error === "Доступ запрещён") { setForbidden(true); }
     else { setStats(data); }
     setLoading(false);
+  };
+
+  const loadSupportCount = async () => {
+    const { adminTicketsCount } = await import("@/lib/supportApi");
+    const res = await adminTicketsCount();
+    setOpenSupportCount(res.count || 0);
   };
 
   const loadUsers = async (q = "") => {
@@ -82,7 +90,7 @@ export default function AdminPage({ onNavigate }: AdminPageProps) {
     loadReports();
   };
 
-  useEffect(() => { loadStats(); }, []);
+  useEffect(() => { loadStats(); loadSupportCount(); }, []);
 
   useEffect(() => {
     if (tab === "users") loadUsers(search);
@@ -157,7 +165,7 @@ export default function AdminPage({ onNavigate }: AdminPageProps) {
 
       {/* Tabs */}
       <div className="flex gap-2 flex-wrap">
-        {([["stats", "BarChart2", "Статистика"], ["users", "Users", "Пользователи"], ["ads", "FileText", "Объявления"], ["activity", "Activity", "Активность"], ["reports", "Flag", "Жалобы"]] as const).map(([id, icon, label]) => (
+        {([["stats", "BarChart2", "Статистика"], ["users", "Users", "Пользователи"], ["ads", "FileText", "Объявления"], ["activity", "Activity", "Активность"], ["reports", "Flag", "Жалобы"], ["support", "Headphones", "Поддержка"]] as const).map(([id, icon, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -170,6 +178,11 @@ export default function AdminPage({ onNavigate }: AdminPageProps) {
             {id === "reports" && openReportsCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">
                 {openReportsCount}
+              </span>
+            )}
+            {id === "support" && openSupportCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-rose-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold px-1">
+                {openSupportCount}
               </span>
             )}
           </button>
@@ -228,6 +241,10 @@ export default function AdminPage({ onNavigate }: AdminPageProps) {
 
       {tab === "activity" && !loading && (
         <AdminActivityTab activity={activity} />
+      )}
+
+      {tab === "support" && (
+        <AdminSupportTab />
       )}
 
       {/* Reject modal */}
