@@ -128,6 +128,10 @@ export default function AdCreateForm({
         <div className="sm:col-span-2">
           <label className={labelCls}>Фото и видео</label>
           <MediaUploader value={media} onChange={onMediaChange} />
+          <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+            <Icon name="Info" size={11} />
+            Объявления с фото просматривают в 5 раз чаще. Добавьте до 10 фото.
+          </p>
         </div>
 
         {/* Заголовок */}
@@ -139,7 +143,15 @@ export default function AdCreateForm({
             onChange={e => onFieldChange("title", e.target.value)}
             placeholder="Например: iPhone 15 Pro 256GB"
             className={inputCls}
+            maxLength={100}
           />
+          <p className="text-xs text-muted-foreground mt-1 flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <Icon name="Info" size={11} />
+              Укажите модель, марку, размер — всё, что важно покупателю
+            </span>
+            <span className={formData.title.length > 80 ? "text-amber-500" : ""}>{formData.title.length}/100</span>
+          </p>
         </div>
 
         {/* Категория */}
@@ -221,6 +233,13 @@ export default function AdCreateForm({
             </div>
           )}
 
+          {!isFree && formData.price && (
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Icon name="TrendingDown" size={11} />
+              Средняя цена по рынку зависит от состояния товара
+            </p>
+          )}
+
           <div className="flex gap-4 mt-2">
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
@@ -247,6 +266,10 @@ export default function AdCreateForm({
         <div>
           <label className={labelCls}>Город</label>
           <CitySelect value={formData.city} onChange={v => onFieldChange("city", v)} placeholder="Выберите город" />
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+            <Icon name="MapPin" size={11} />
+            Укажите город — покупатели ищут рядом
+          </p>
         </div>
 
         {/* Состояние товара — только для категорий где это имеет смысл */}
@@ -377,7 +400,17 @@ export default function AdCreateForm({
                 : "Расскажите подробнее: состояние, комплектация, причина продажи..."
             }
             className={`${inputCls} resize-none`}
+            maxLength={3000}
           />
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Icon name="Info" size={11} />
+              Подробное описание увеличивает доверие покупателей
+            </p>
+            <span className={`text-xs ${formData.description.length > 2500 ? "text-amber-500" : "text-muted-foreground"}`}>
+              {formData.description.length}/3000
+            </span>
+          </div>
         </div>
       </div>
 

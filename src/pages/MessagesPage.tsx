@@ -33,6 +33,7 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useRef<Dialog | null>(null);
 
   const loadInbox = async () => {
     try {
@@ -60,9 +61,27 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
   };
 
   useEffect(() => {
-    if (user) loadInbox();
-    else setLoading(false);
+    selectedRef.current = selected;
+  }, [selected]);
+
+  useEffect(() => {
+    if (!user) { setLoading(false); return; }
+    loadInbox();
+    const inboxInterval = setInterval(loadInbox, 10000);
+    return () => clearInterval(inboxInterval);
   }, [user]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const refreshThread = async () => {
+      try {
+        const res = await getThread(selected.other_user_id);
+        setThread(res.messages);
+      } catch { /* pass */ }
+    };
+    const threadInterval = setInterval(refreshThread, 10000);
+    return () => clearInterval(threadInterval);
+  }, [selected?.other_user_id]);
 
   const handleSend = async () => {
     if (!selected || !newMsg.trim() || !user) return;
