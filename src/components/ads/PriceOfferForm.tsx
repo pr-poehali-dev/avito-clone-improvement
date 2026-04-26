@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
-import { offerPrice, getMyOffers, formatPrice } from "@/lib/adsApi";
+import { offerPrice, getMyOffers } from "@/lib/adsApi";
+import { formatPrice } from "@/components/AdCard";
 
 interface PriceOfferFormProps {
   adId: number;
