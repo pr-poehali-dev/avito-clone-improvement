@@ -254,6 +254,14 @@ def handler(event: dict, context) -> dict:
                 return err(400, "Пустое сообщение")
 
             cur = conn.cursor()
+            # Получаем user_id пользователя по тикету
+            cur.execute(f"SELECT user_id, subject FROM {SCHEMA}.support_tickets WHERE id = %s", (ticket_id,))
+            ticket_row = cur.fetchone()
+            if not ticket_row:
+                cur.close()
+                return err(404, "Тикет не найден")
+            ticket_owner_id, ticket_subject = ticket_row
+
             cur.execute(
                 f"INSERT INTO {SCHEMA}.support_messages (ticket_id, sender_id, is_admin, text) VALUES (%s, %s, TRUE, %s)",
                 (ticket_id, user_id, text)
@@ -261,6 +269,12 @@ def handler(event: dict, context) -> dict:
             cur.execute(
                 f"UPDATE {SCHEMA}.support_tickets SET updated_at = NOW(), status = 'answered', unread_admin = 0 WHERE id = %s",
                 (ticket_id,)
+            )
+            # Уведомление пользователю
+            short = text[:120] + ("..." if len(text) > 120 else "")
+            cur.execute(
+                f"INSERT INTO {SCHEMA}.notifications (user_id, type, title, text, ad_id) VALUES (%s, 'support', 'Ответ от поддержки', %s, NULL)",
+                (ticket_owner_id, short)
             )
             conn.commit()
             cur.close()

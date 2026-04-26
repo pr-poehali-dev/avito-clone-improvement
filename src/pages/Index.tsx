@@ -135,7 +135,7 @@ export default function Index() {
       case "my-ads": return <MyAdsPage openForm={openAdForm} onFormOpened={() => setOpenAdForm(false)} onNavigate={handleNavigate} />;
       case "favorites": return <FavoritesPage adImages={{}} onNavigate={handleNavigate} />;
       case "messages": return <MessagesPage user={user} onAuthClick={() => setShowAuth(true)} />;
-      case "profile": return <ProfilePage user={user} onLogout={handleLogout} onNavigate={handleNavigate} onUserUpdate={setUser} />;
+      case "profile": return <ProfilePage user={user} onLogout={handleLogout} onNavigate={handleNavigate} onUserUpdate={setUser} theme={theme} onToggleTheme={toggleTheme} />;
       case "about": return <AboutPage />;
       case "admin": return <AdminPage onNavigate={(page, param) => {
         if (page === "ad" && param) { handleNavigate(`ad:${param}`); }

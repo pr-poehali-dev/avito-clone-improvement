@@ -157,8 +157,8 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
               selected === cat.id ? "ring-2 ring-violet-500 bg-violet-50/80" : ""
             }`}
           >
-            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-md shrink-0`}>
-              <Icon name={cat.icon} size={20} className="text-white" />
+            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-md shrink-0 text-xl`}>
+              {(cat as { emoji?: string }).emoji ?? <Icon name={cat.icon} size={20} className="text-white" />}
             </div>
             <div className="min-w-0 flex-1">
               <div className="font-semibold text-sm text-foreground leading-tight">{cat.name}</div>
@@ -175,8 +175,8 @@ export default function CategoriesPage({ adImages, onNavigate, initialSearch, in
       {selected && subs.length > 0 && (
         <div className="animate-fade-in">
           <div className="flex items-center gap-2 mb-3">
-            <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${selectedCat?.color} flex items-center justify-center`}>
-              <Icon name={selectedCat?.icon || "Tag"} size={14} className="text-white" />
+            <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${selectedCat?.color} flex items-center justify-center text-sm`}>
+              {(selectedCat as { emoji?: string } | undefined)?.emoji ?? <Icon name={selectedCat?.icon || "Tag"} size={14} className="text-white" />}
             </div>
             <h3 className="font-semibold text-base">{selectedCat?.name} — подкатегории</h3>
           </div>

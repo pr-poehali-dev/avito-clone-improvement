@@ -9,9 +9,11 @@ interface ProfilePageProps {
   onLogout: () => void;
   onNavigate?: (page: string) => void;
   onUserUpdate?: (u: User) => void;
+  theme?: string;
+  onToggleTheme?: () => void;
 }
 
-export default function ProfilePage({ user, onLogout, onNavigate, onUserUpdate }: ProfilePageProps) {
+export default function ProfilePage({ user, onLogout, onNavigate, onUserUpdate, theme, onToggleTheme }: ProfilePageProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -305,6 +307,30 @@ export default function ProfilePage({ user, onLogout, onNavigate, onUserUpdate }
           </button>
         ))}
       </div>
+
+      {/* Theme toggle */}
+      {onToggleTheme && (
+        <div className="glass-card rounded-2xl px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${theme === "dark" ? "bg-indigo-100 text-indigo-600" : "bg-amber-100 text-amber-500"}`}>
+              <Icon name={theme === "dark" ? "Moon" : "Sun"} size={18} />
+            </div>
+            <div>
+              <div className="font-semibold text-sm">{theme === "dark" ? "Тёмная тема" : "Светлая тема"}</div>
+              <div className="text-xs text-muted-foreground">Переключить оформление</div>
+            </div>
+          </div>
+          <button
+            onClick={onToggleTheme}
+            aria-label="Переключить тему"
+            className={`relative w-12 h-6 rounded-full transition-colors duration-500 focus:outline-none ${theme === "dark" ? "bg-indigo-500" : "bg-muted"}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-500 ${theme === "dark" ? "translate-x-6" : "translate-x-0"}`}>
+              <Icon name={theme === "dark" ? "Moon" : "Sun"} size={11} className={theme === "dark" ? "text-indigo-600" : "text-amber-400"} />
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Logout */}
       <button

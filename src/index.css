@@ -95,6 +95,27 @@
     @apply border-border;
   }
 
+  html {
+    transition:
+      background-color 0.5s ease,
+      color 0.5s ease;
+  }
+
+  html *,
+  html *::before,
+  html *::after {
+    transition-property:
+      background-color, color, border-color, fill, stroke, box-shadow;
+    transition-duration: 0.4s;
+    transition-timing-function: ease;
+  }
+
+  /* Исключаем элементы где анимация не нужна */
+  html .no-theme-transition,
+  html .no-theme-transition * {
+    transition: none !important;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: "Golos Text", sans-serif;

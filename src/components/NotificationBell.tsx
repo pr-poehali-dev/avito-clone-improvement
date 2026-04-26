@@ -99,8 +99,11 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
                       n.type === "message" ? "bg-cyan-100" :
                       n.type === "review" ? "bg-amber-100" :
                       n.type === "price_offer" ? "bg-violet-100" :
+                      n.type === "offer_accepted" ? "bg-emerald-100" :
+                      n.type === "offer_rejected" ? "bg-rose-100" :
                       n.type === "subscription" ? "bg-indigo-100" :
                       n.type === "alert" ? "bg-rose-100" :
+                      n.type === "support" || n.type === "answered" ? "bg-violet-100" :
                       "bg-muted"
                     }`}>
                       <Icon
@@ -110,8 +113,11 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
                           n.type === "message" ? "MessageCircle" :
                           n.type === "review" ? "Star" :
                           n.type === "price_offer" ? "Tag" :
+                          n.type === "offer_accepted" ? "BadgeCheck" :
+                          n.type === "offer_rejected" ? "BadgeX" :
                           n.type === "subscription" ? "Bell" :
                           n.type === "alert" ? "AlertTriangle" :
+                          n.type === "support" || n.type === "answered" ? "Headphones" :
                           "Bell"
                         }
                         size={16}
@@ -121,8 +127,11 @@ export default function NotificationBell({ onNavigate }: NotificationBellProps) 
                           n.type === "message" ? "text-cyan-600" :
                           n.type === "review" ? "text-amber-500" :
                           n.type === "price_offer" ? "text-violet-600" :
+                          n.type === "offer_accepted" ? "text-emerald-600" :
+                          n.type === "offer_rejected" ? "text-rose-500" :
                           n.type === "subscription" ? "text-indigo-600" :
                           n.type === "alert" ? "text-rose-600" :
+                          n.type === "support" || n.type === "answered" ? "text-violet-600" :
                           "text-muted-foreground"
                         }
                       />

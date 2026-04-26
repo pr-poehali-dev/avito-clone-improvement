@@ -164,8 +164,8 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
               onClick={() => { setFilters({ category: cat.id }); loadAds({ category: cat.id }); onNavigate("categories"); }}
               className={`category-card p-4 flex flex-col items-center gap-2 text-center animate-fade-in delay-${(i % 6 + 1) * 100}`}
             >
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-md`}>
-                <Icon name={cat.icon} size={20} className="text-white" />
+              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center shadow-md text-xl`}>
+                {(cat as { emoji?: string }).emoji ?? <Icon name={cat.icon} size={20} className="text-white" />}
               </div>
               <span className="text-xs font-semibold text-foreground leading-tight">{cat.name}</span>
             </button>

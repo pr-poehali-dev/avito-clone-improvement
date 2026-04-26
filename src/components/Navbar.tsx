@@ -209,16 +209,7 @@ export default function Navbar({
             <span className="text-muted-foreground/50">Поиск</span>
           </button>
 
-          {/* Theme toggle */}
-          {onToggleTheme && (
-            <button
-              onClick={onToggleTheme}
-              title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-              className="hidden md:flex w-9 h-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent hover:border-border"
-            >
-              <Icon name={theme === "dark" ? "Sun" : "Moon"} size={16} />
-            </button>
-          )}
+
 
           {/* Right side */}
           <div className="flex items-center gap-2">
