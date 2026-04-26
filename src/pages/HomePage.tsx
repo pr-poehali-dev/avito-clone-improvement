@@ -28,6 +28,7 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
   const [viewedIds, setViewedIds] = useState<Set<number>>(new Set());
   const [cityAds, setCityAds] = useState<Ad[]>([]);
   const [userCity, setUserCity] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState("date");
 
   const stats = [
     { label: "Объявлений", icon: "FileText", color: "text-violet-600", value: total.toLocaleString("ru-RU") },
@@ -174,11 +175,37 @@ export default function HomePage({ onNavigate, adImages, onAuthClick }: HomePage
 
       {/* Ads */}
       <section id="fresh-ads">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h2 className="font-display text-2xl font-bold">
             Свежие объявления
             {total > 0 && <span className="ml-2 text-base font-normal text-muted-foreground">{total}</span>}
           </h2>
+          <div className="flex items-center gap-1.5">
+            {[
+              { value: "date", label: "Новые", icon: "Clock" },
+              { value: "price_asc", label: "Дешевле", icon: "TrendingDown" },
+              { value: "price_desc", label: "Дороже", icon: "TrendingUp" },
+              { value: "views", label: "Популярные", icon: "Eye" },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  setSortBy(opt.value);
+                  const f = { ...filters, sort_by: opt.value };
+                  setFilters(f);
+                  loadAds(f);
+                }}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  sortBy === opt.value
+                    ? "bg-violet-600 text-white shadow-sm"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                <Icon name={opt.icon} size={11} />
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (

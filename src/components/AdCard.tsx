@@ -23,6 +23,7 @@ export interface AdCardData {
   score?: number;
   bargain?: boolean;
   exchange?: boolean;
+  seller_phone?: string | null;
 }
 
 interface AdCardProps {
@@ -165,6 +166,17 @@ export default function AdCard({ ad, onDelete, showDeleteBtn, onNavigate, onFavo
             <Icon name="User" size={11} />
             {ad.seller_name}
           </div>
+        )}
+
+        {ad.seller_phone && (
+          <a
+            href={`tel:${ad.seller_phone}`}
+            onClick={e => e.stopPropagation()}
+            className="sm:hidden mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+          >
+            <Icon name="Phone" size={12} />
+            Позвонить
+          </a>
         )}
 
         {/* Delete controls */}

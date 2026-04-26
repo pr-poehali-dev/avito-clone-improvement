@@ -251,7 +251,21 @@ export default function MessagesPage({ user, onAuthClick }: MessagesPageProps) {
               <div ref={bottomRef} />
             </div>
 
-            <div className="p-4 border-t border-border flex gap-2">
+            <div className="px-4 pt-2 pb-1 border-t border-border">
+              <div className="flex gap-1.5 overflow-x-auto pb-1.5 scrollbar-none">
+                {["Ещё актуально?", "Какова минимальная цена?", "Где можно посмотреть?", "Когда можно забрать?", "Торг возможен?"].map(phrase => (
+                  <button
+                    key={phrase}
+                    type="button"
+                    onClick={() => setNewMsg(phrase)}
+                    className="shrink-0 px-3 py-1 bg-muted/60 hover:bg-violet-100 hover:text-violet-700 text-muted-foreground rounded-full text-xs font-medium transition-colors whitespace-nowrap"
+                  >
+                    {phrase}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 pt-2 border-border flex gap-2">
               <input
                 type="text"
                 value={newMsg}

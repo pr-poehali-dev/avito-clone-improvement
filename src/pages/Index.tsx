@@ -201,6 +201,7 @@ export default function Index() {
         user={user}
         onAuthClick={() => setShowAuth(true)}
         unreadMsgs={unreadMsgs}
+        onBack={() => { setActivePage(prevPage); setPageParam(null); }}
       />
 
       {/* Footer */}
