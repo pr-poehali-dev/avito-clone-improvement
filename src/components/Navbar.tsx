@@ -5,7 +5,7 @@ import { User } from "@/lib/auth";
 import { getFavoriteIds, subscribeFavorites } from "@/lib/favorites";
 import { getToken } from "@/lib/auth";
 import NotificationBell from "@/components/NotificationBell";
-import CitySelect from "@/components/CitySelect";
+import CitySelect, { RUSSIAN_CITIES } from "@/components/CitySelect";
 import { categories } from "@/data/mockData";
 
 const ADS_URL =
@@ -277,7 +277,7 @@ export default function Navbar({
                     onChange={e => setSearchCity(e.target.value)}
                     className="text-sm outline-none bg-transparent text-muted-foreground cursor-pointer max-w-[120px]"
                   >
-                    {["Все города","Москва","Санкт-Петербург","Новосибирск","Екатеринбург","Казань","Нижний Новгород","Челябинск","Самара","Омск","Ростов-на-Дону","Уфа","Красноярск","Воронеж","Пермь","Волгоград","Краснодар","Саратов","Тюмень","Тольятти","Ижевск","Барнаул","Иркутск","Хабаровск","Ярославль","Владивосток","Томск","Сочи","Пятигорск","Ставрополь","Белгород","Владимир","Калининград","Тула","Рязань","Пенза","Астрахань","Липецк","Тверь","Киров","Чебоксары","Брянск","Курск","Иваново"].map(c => (
+                    {RUSSIAN_CITIES.map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
